@@ -5,7 +5,7 @@ Workshop materials for the CopilotKit session on **Thu Nov 5 2026** (https://lum
 > **Beta.** The skills, starters and checklist are early and still changing. Expect rough edges, and
 > open an issue when something doesn't work.
 
-Repo: https://github.com/jerelvelarde/functional-copilot (the one place the repo's URL is written; everything else points here).
+Repo: https://github.com/jerelvelarde/functional-copilots (the one place the repo's URL is written; everything else points here).
 
 A *functional copilot* is an agent built for one business function (HR, finance, procurement, supply
 chain, legal, IT, support) that takes one real workflow from the first question to an approval-ready
