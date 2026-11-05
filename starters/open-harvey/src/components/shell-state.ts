@@ -28,6 +28,16 @@ function set(patch: Partial<Shell>) {
 export const getShell = () => shell;
 export const goTo = (view: View) => set({ view, railOpen: false, ...(view === "assistant" ? {} : { opening: null }) });
 export const openOutput = (output: Output) => set({ view: "assistant", output });
+/** Room for an output beside the thread. On a phone an output would cover the thread, and with it the chat. */
+export const roomBesideThread = () => typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches;
+/**
+ * What the copilot opens as it works (the document it edits, the collection's table): beside the
+ * thread when there is room, never over it, so the chat and its work rows stay in view. A person's
+ * own click (a cite chip, Work in the rail) opens the output whatever the width.
+ */
+export const openOutputForWork = (output: Output) => {
+  if (roomBesideThread()) openOutput(output);
+};
 export const closeOutput = () => set({ output: null });
 export const setMatterTab = (tab: MatterTab) => set({ view: "matters", tab });
 /** A newly opened matter starts on its Tasks tab, whichever view is showing. */

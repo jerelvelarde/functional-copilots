@@ -21,7 +21,7 @@ import { InsightsPanel } from "@/components/panels/InsightsPanel";
 import { MatterQueue } from "@/components/panels/MatterQueue";
 import { PlaybookPanel } from "@/components/panels/PlaybookPanel";
 import { ResetBoundary } from "@/components/ResetBoundary";
-import { clearOpening, closeOutput, getShell, goTo, openMatterIn, openOutput, resetMatterTab, setMatterTab, takePendingView, toggleRail, useShell, type View } from "@/components/shell-state";
+import { clearOpening, closeOutput, getShell, goTo, openMatterIn, openOutput, resetMatterTab, setMatterTab, takePendingView, toggleRail, useShell, type View, openOutputForWork } from "@/components/shell-state";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Card";
 import { OpenMark } from "@/components/ui/LegalTags";
@@ -207,7 +207,7 @@ function useFollowTheWork() {
       clearOpening();
     }
     // The collection's thread opened (readCollection, or Ask in a thread): its review table goes beside it.
-    if (state.activeCollectionId && state.activeCollectionId !== before.collection) openOutput("collection");
+    if (state.activeCollectionId && state.activeCollectionId !== before.collection) openOutputForWork("collection");
     if (gateKey && gateKey !== before.gate) {
       goTo("assistant");
       closeOutput();

@@ -1,7 +1,8 @@
 // The assistant view: the copilot's thread at the centre (copilot/ChatPanel.tsx), its plan and work
 // on the right rail (RightRail.tsx). Opening an output (the review table, the contract, the
 // approvals) puts it beside the thread in place of the rail, so Maya can edit a redline and watch the
-// copilot re-check it in the same glance. In the collection's thread, the collection's review table
+// copilot re-check it in the same glance. The thread stays in view beside it down to tablet width;
+// only on a phone does an output take the screen (and the copilot never opens one there by itself). In the collection's thread, the collection's review table
 // opens there instead, and fills as the agent answers it.
 
 "use client";
@@ -25,7 +26,7 @@ export function AssistantView({ model, error, onDismissError, onHumanEdit, hidde
     <div className={`min-h-0 min-w-0 flex-1 ${hidden ? "hidden" : "flex"}`} data-testid="assistant-view">
       <section
         aria-label="Assistant"
-        className={`copilot-surface flex min-h-0 min-w-0 flex-col bg-surface ${side ? "w-[440px] shrink-0 border-r border-hairline max-lg:hidden" : "flex-1"}`}
+        className={`copilot-surface flex min-h-0 min-w-0 flex-col bg-surface ${side ? "w-[440px] shrink-0 border-r border-hairline max-xl:w-[380px] max-md:hidden" : "flex-1"}`}
         data-testid="thread"
       >
         <ChatPanel model={model} error={error} onDismissError={onDismissError} />

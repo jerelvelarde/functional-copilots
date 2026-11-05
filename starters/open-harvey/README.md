@@ -54,9 +54,11 @@ Start from a clean slate with **Reset demo** (in Maya's menu at the foot of the 
 Spaces page opens ("Vendor contracts"), with Acme Cloud and the six reviews imported when Open Harvey went
 live on Monday, as outcomes only. The sidebar holds New thread, Agents, Collections, Analytics, Playbooks,
 Recents (the threads) and Spaces (the matters). Click **Open** on Acme Cloud: the assistant view opens,
-with the copilot's thread at the centre and the review on the right rail (Plan and Work). Type the lines in quotes into the thread. Chips offer the
-lines the copilot could sensibly suggest (review this, send it, where is it); Maya's reason in step 4 is
-her judgment, so the presenter types it.
+with the copilot's thread at the centre and the review on the right rail (Plan and Work). Type the lines in quotes into the thread, or click
+them: every line the scripted mock understands is always offered as a chip above the composer where it
+makes sense (the next step first, then the document asks and "How are reviews going?", at most four), and
+an empty thread greets Maya with what is on her desk. Brightwater and the collection's question wait until
+PB-SEC-01 is published, so they don't spoil the learning beat.
 
 1. **The ask.** "Review the Acme Cloud MSA and get it ready to sign." The copilot reads the matter (14
    sections, $720,000 over 36 months) and proposes the 17-task plan as a card with **Approve plan** and
@@ -89,7 +91,7 @@ her judgment, so the presenter types it.
    Adler?" It never changes your value back. (§8.3 of the contract lifts the cap only for indemnities and
    gross negligence, fraud or willful misconduct, so data breaches are capped: the $1,000,000 data-breach
    cap is a real gain, not a give-away.)
-4. **The gate.** Type the reason (no chip offers it): "Acme won't go above 6 months. The $1M data-breach
+4. **The gate.** Type the reason (or click its chip): "Acme won't go above 6 months. The $1M data-breach
    cap covers the exposure we care about." Then "Send it for approval." An approval card: "Send the Acme
    review to Rachel Adler, Jordan Blake and Elena Ortiz for approval?" with the route, the rule behind each
    approver and your reason, and **Send for approval** / **Keep editing**. Nothing is sent until you click,
@@ -130,8 +132,43 @@ her judgment, so the presenter types it.
    the reports, and each sent them only after Security sent the review back, 22 days lost between them
    (the same sum Insights uses). PB-SEC-01 now asks before signing: Brightwater's request went out with its
    redlines, and Acme's goes out with the resubmission. Kestrel, Orchard Lane and Halden hold no customer
-   data, so the rule doesn't apply. **Collections** holds the same table with all six questions; **Agents** lists the three
+   data, so the rule doesn't apply. **Collections** holds the same table with all six questions; **Agents** lists the four
    jobs the copilot does, with the tools each calls, and Start opens a thread with its first line ready.
+
+
+## The document
+
+The contract is a live document, the way a lawyer works in Word. Open it from **Work → Contract** (or the
+matter's Contract tab): the vendor's draft, with Northstar's tracked changes in it and comments in the
+margin, each with who made it.
+
+![The copilot works in the document: it comments on each of the seven redlines with its playbook rule, adds §5.4 Security reports as a tracked insertion that Maya accepts, and suggests a tracked edit to §2.3](docs/media/06-document-copilot.gif)
+
+- **The redlines are tracked changes.** Once the review has run, each of the copilot's redlines reads in place
+  as Acme's struck words and Northstar's inserted ones, with a margin card naming the rule and the playbook
+  position. A redlined sentence *is* its redline: edit it here or in the Review table and it is the same
+  edit, and the copilot re-checks it the same way.
+- **Click any text to edit it.** Every edit is tracked in Maya's name (a solid line); the copilot's
+  suggestions read dotted until she accepts them. **Accept** makes a change hers; **Reject** puts Acme's
+  words back (for a playbook redline that is an accepted deviation, so the copilot asks for a reason for the
+  General Counsel, as in step 3).
+- **Select words to comment on them.** Comments sit in the margin on the exact words, with replies and
+  Resolve. The toolbar switches between **All markup**, **No markup** (the contract as it would read) and
+  **Original** (the vendor's draft), and steps through the changes.
+- **The copilot works in it natively,** with six frontend tools: `readDocument` (opens the document beside
+  the thread and reads it as it reads now), `suggestEdit` (a tracked change in its name), `insertClause` (a
+  new clause at the end of a section, numbered so no cite moves), `addComment`, `replyToComment` and
+  `resolveComment`. Text and comments Maya wrote are refused unless she asked, enforced in code like the
+  redlines.
+
+![Maya works in it too: she selects words in §2.3 and comments on them, clicks into §1.2 and changes 40 terabytes to 60 as her tracked change, then switches between All markup, No markup and Original](docs/media/07-document-maya.gif)
+
+**Ask the copilot** in the document's toolbar offers what the scripted mock plays (each opens the document
+first, so you watch the change land): "Comment on each Acme redline with Northstar's reason." (after the
+review: seven comments, one per redline, each with its rule), "Add a clause that Acme sends its SOC 2 Type II
+report and latest pen-test summary before we sign." (§5.4, the clause Jordan asks for in step 5) and "Edit §2.3
+of the Acme MSA so service credits aren't Northstar's only remedy." (a tracked edit to text no playbook rule
+covers). With a real model, ask for any edit, clause or comment in your own words.
 
 ## Deploy it
 
@@ -213,7 +250,9 @@ shows it in a strip under the top bar:
 | The shell: a black labelled sidebar (New thread, Agents, Collections, Analytics, Playbooks, Recents, Spaces), the views | `src/components/LegalApp.tsx`, `src/components/shell-state.ts` |
 | The thread at the centre (one per matter), the review on the rail: Plan and Work | `src/components/AssistantView.tsx`, `src/components/RightRail.tsx`, `src/components/OutputPanel.tsx`, `src/copilot/thread-segments.ts` (tested) |
 | The plan as work assigned to a colleague: the Tasks table grouped by phase, the matter view | `src/components/MatterView.tsx`, `src/components/panels/TasksTable.tsx`, `src/components/panels/MatterHeader.tsx` |
-| Citations that open the passage | `src/components/panels/ContractViewer.tsx`, `src/components/cite-focus.ts` |
+| Citations that open the passage | `src/components/panels/DocumentEditor.tsx`, `src/components/cite-focus.ts` |
+| The contract as a live document: spans that are the redlines, tracked changes worked out from the vendor's words, comments anchored to exact words, added clauses | `src/lib/document.ts` (tested in `document.test.ts`), the store side in `src/lib/store.ts` (tested in `document-store.test.ts`) |
+| The agent edits, redlines and comments in the document (`useFrontendTool`: `readDocument`, `suggestEdit`, `insertClause`, `addComment`, `replyToComment`, `resolveComment`), and Maya accepts or rejects | `src/copilot/useDocumentTools.ts`, handlers in `src/lib/agent-tools.ts`, `src/components/panels/DocumentEditor.tsx`, `src/components/doc-focus.ts` |
 | Approvals stay with people: "Acting as", the route as the decision record | `src/components/panels/ApprovalsPanel.tsx`, `src/components/ui/RouteList.tsx` |
 | Learning from corrections, a person publishes the rule | `src/lib/learning.ts` (tested), `src/components/panels/InsightsPanel.tsx` |
 | Suggestions that follow the story (`useConfigureSuggestions`, pinned above the composer) | `src/copilot/useSuggestionChips.ts`, `src/copilot/chips.ts` (tested against the mock) |
