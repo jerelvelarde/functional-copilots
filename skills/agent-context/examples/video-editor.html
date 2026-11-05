@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Agent context map</title>
+<style>
+/* Ink on off-white, like Open Harvey. Status is fill, outline and weight, never hue. */
+:root {
+  --paper: #f6f5f1; --surface: #ffffff; --stone: #edebe6; --ink: #141310; --ink-soft: #2d2b27;
+  --muted: #65615a; --hairline: #e2dfd8; --rule: #cbc7be; --on-ink: #ffffff;
+  --serif: "Iowan Old Style", "Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 8px; --gutter: 16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121110; --surface: #1a1917; --stone: #252421; --ink: #f0eee9; --ink-soft: #d9d6cf;
+    --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c; --on-ink: #121110; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121110; --surface: #1a1917; --stone: #252421; --ink: #f0eee9; --ink-soft: #d9d6cf;
+  --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c; --on-ink: #121110; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.5 var(--sans); font-variant-numeric: tabular-nums; }
+a { color: inherit; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+code { font: 12.5px/1.4 var(--mono); background: var(--stone); padding: 1px 4px; border-radius: 3px; overflow-wrap: break-word; }
+button { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--ink); }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.wrap { max-width: 1560px; margin: 0 auto; padding: 0 var(--gutter); overflow-wrap: break-word; }
+.layout > *, .jobs > *, .counts > * { min-width: 0; }
+.small { font-size: 12.5px; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+h2 { font-size: 22px; line-height: 28px; }
+h3 { font-size: 16px; line-height: 22px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.02em; }
+
+/* Header */
+header.top { border-bottom: 1px solid var(--hairline); background: var(--surface); }
+header.top .wrap { padding-top: 20px; padding-bottom: 18px; }
+.top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.actions { display: flex; gap: 8px; }
+h1 { font-size: 30px; line-height: 36px; margin-top: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+.summary { max-width: 860px; margin: 10px 0 0; font-size: 15px; }
+.suite { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; }
+.suite .root { font: 600 12px/1 var(--mono); color: var(--muted); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.steps li { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); border-radius: 999px; padding: 3px 10px 3px 4px; line-height: 1.3; }
+.steps li i { font: normal 600 11.5px/1 var(--mono); display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--rule); }
+.steps li.here { background: var(--ink); color: var(--on-ink); border-color: var(--ink); font-weight: 700; }
+.steps li.here i { border-color: var(--on-ink); }
+.steps li.learn { border-style: dashed; padding-left: 10px; color: var(--muted); }
+.suite .cmd { font: 12px/1 var(--mono); color: var(--muted); }
+header.top h1 { max-width: 980px; }
+.meta-line { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.alert-line { margin-top: 12px; display: inline-block; border: 2px dashed var(--ink); border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 13px; }
+.alert-line[hidden] { display: none; }
+.rings-hero { padding: 24px 0 8px; margin-bottom: 0; border-bottom: 1px solid var(--hairline); }
+.rings-hero .ring .chip { font-size: 12.5px; }
+.stack { margin: 10px 0 0; font: 12px/1.5 var(--mono); color: var(--muted); }
+.stack b { font-family: var(--sans); font-weight: 600; color: var(--ink); margin-right: 6px; }
+.item .foot { grid-column: 2; margin: 8px 0 0; font-size: 12px; color: var(--muted); border-top: 1px dashed var(--rule); padding-top: 6px; }
+.example-note { margin-top: 12px; font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--rule); padding-left: 10px; }
+
+/* Layout: the map, with the checklist alongside on wide screens */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; padding-top: 24px; padding-bottom: 48px; }
+@media (min-width: 1500px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 420px; }
+  .rail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+}
+section { margin-bottom: 36px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.section-head p { margin: 4px 0 0; color: var(--muted); max-width: 760px; }
+
+/* Counts */
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.count { border: 1px solid var(--hairline); background: var(--surface); border-radius: var(--radius); padding: 8px 12px; min-width: 112px; }
+.count b { display: block; font: 500 24px/1.1 var(--serif); }
+.count span { font-size: 12px; color: var(--muted); }
+.count.alert { border: 2px dashed var(--ink); }
+.count.alert span { color: var(--ink); font-weight: 600; }
+
+/* The seven rings, closest first */
+.rings { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; position: relative; }
+.rings::before { content: ""; position: absolute; left: 3%; right: 3%; top: 15px; border-top: 1px solid var(--rule); }
+.ring { position: relative; padding: 0 8px 0 0; }
+.ring .dot { position: relative; z-index: 1; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--paper); border: 1px dashed var(--rule); color: var(--muted); font: 600 12px/1 var(--mono); }
+.ring.used .dot { background: var(--ink); color: var(--on-ink); border: 1px solid var(--ink); }
+.ring h3 { margin-top: 8px; font-size: 15px; }
+.ring .piece { font: 12px/1.4 var(--mono); color: var(--muted); margin-top: 2px; min-height: 32px; }
+.ring .chips { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 8px; }
+.ring .chip, .job .chip, .item .chip { border-radius: 6px; align-items: flex-start; padding: 3px 8px 3px 3px; line-height: 17px; }
+.ring .chip .id, .job .chip .id, .item .chip .id { border-radius: 4px; }
+.ends { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+.ends span:last-child { text-align: right; }
+@media screen and (max-width: 900px) {
+  .rings { grid-template-columns: 1fr; gap: 14px; }
+  .rings::before { left: 15px; right: auto; top: 6px; bottom: 6px; border-top: 0; border-left: 1px solid var(--rule); }
+  .ring { display: grid; grid-template-columns: 30px 1fr; column-gap: 12px; }
+  .ring h3, .ring .piece, .ring .chips { grid-column: 2; }
+  .ring h3 { margin-top: 0; grid-row: 1; align-self: center; }
+  .ring .piece { min-height: 0; }
+  .ring .dot { grid-row: 1; }
+  .ends { display: none; }
+}
+
+/* Chips, pills and gates: fill = write or verified, outline = read or wired, dashed = planned */
+.chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; border: 1px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 3px; font-size: 12px; line-height: 18px; text-decoration: none; background: var(--surface); }
+.chip .nm { min-width: 0; overflow-wrap: anywhere; }
+.chip .id { flex: none; font: 600 11.5px/16px var(--mono); border-radius: 999px; padding: 0 5px; border: 1px solid currentColor; }
+.chip.w { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.chip.planned { border-style: dashed; }
+.chip.w.planned { background: var(--surface); color: var(--ink); border: 2px dashed var(--ink); }
+.chip.missing { border-style: dotted; color: var(--muted); }
+.pill { display: inline-block; white-space: nowrap; border: 1px solid var(--ink); border-radius: 999px; padding: 0 8px; font-size: 12px; line-height: 20px; }
+.pill.planned { border-style: dashed; border-color: var(--muted); color: var(--muted); }
+.pill.wired { font-weight: 500; }
+.pill.verified { background: var(--ink); color: var(--on-ink); font-weight: 700; }
+.pill.read { }
+.pill.write, .pill.read-write { background: var(--ink); color: var(--on-ink); font-weight: 600; }
+.gate { display: inline-block; position: relative; padding-left: 16px; }
+.gate::before { content: ""; position: absolute; left: 0; top: 0.4em; width: 9px; height: 9px; border: 1.5px solid var(--ink); box-sizing: border-box; }
+.gate.person::before { background: var(--ink); }
+.gate.person { font-weight: 600; }
+.gate.rule::before { background: transparent; }
+.gate.none::before { border-color: var(--rule); border-style: dashed; }
+.gate.none { color: var(--muted); }
+.gate.missing { font-weight: 700; border: 2px dashed var(--ink); padding: 1px 6px 1px 22px; border-radius: 4px; }
+.gate.missing::before { border-style: dashed; left: 7px; top: 0.5em; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Jobs */
+.jobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.job { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 14px; }
+.job .who { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.job dl { margin: 10px 0 0; display: grid; grid-template-columns: 64px 1fr; gap: 6px 8px; }
+.job dt { font-size: 12px; font-weight: 600; padding-top: 1px; }
+.job dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* The context map: a table on wide screens, cards on phones */
+.table-wrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); }
+table.map { width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+.map col.c-src { width: 20%; } .map col.c-how { width: 19%; } .map col.c-as { width: 14%; } .map col.c-scope { width: 15%; }
+.map col.c-acc { width: 11%; } .map col.c-gate { width: 13%; } .map col.c-status { width: 8%; }
+.map th, .map td { text-align: left; vertical-align: top; padding: 10px 10px; border-bottom: 1px solid var(--hairline); }
+.map thead th { font-size: 12px; font-weight: 600; position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--rule); }
+.map tr.ring-row th { background: var(--stone); font-family: var(--serif); font-size: 14.5px; font-weight: 500; padding: 7px 10px; }
+.map tr.ring-row th .mono { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+.map td .where { display: block; margin-top: 6px; color: var(--ink-soft); }
+.map td .where i, .map td .fresh i { font-style: normal; font-size: 12px; font-weight: 600; color: var(--muted); display: block; }
+.map td .fresh { display: block; margin-top: 8px; }
+.map td.src b { display: block; font-weight: 600; }
+.map td.src .id { font: 600 12px/1 var(--mono); color: var(--muted); }
+.map td .and { display: block; margin: 4px 0 2px 16px; font-size: 12px; color: var(--muted); }
+.later-tag { display: inline-block; margin-left: 6px; border: 1px dotted var(--ink); border-radius: 999px; padding: 0 6px; font-size: 12px; line-height: 16px; color: var(--muted); vertical-align: 1px; }
+.later-mark { color: var(--muted); font-weight: 400; }
+.chip.w .later-mark { color: inherit; opacity: .8; }
+.map td .note { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.map tr:target td { background: var(--stone); }
+.map td.undecided { color: var(--muted); font-style: italic; }
+@media screen and (max-width: 760px) {
+  .table-wrap { border: 0; background: none; overflow: visible; }
+  table.map { min-width: 0; }
+  .map thead { display: none; }
+  .map, .map tbody, .map tr, .map td, .map th { display: block; width: 100%; }
+  .map tr.ring-row th { border-radius: 6px; margin-top: 14px; border: 0; }
+  .map tr.source { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); margin-top: 8px; padding: 4px 0; }
+  .map td { border: 0; padding: 5px 12px; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; }
+  .map td::before { content: attr(data-label); font-size: 12px; font-weight: 600; color: var(--muted); }
+  .map td.src { display: block; padding-top: 10px; }
+  .map td.src::before { content: none; }
+}
+
+/* Checklist */
+.progress { display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+.bar { flex: 1; min-width: 80px; height: 8px; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .2s; }
+.group h3 { margin: 18px 0 8px; font-size: 15px; }
+.item { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 12px 12px 12px 12px; margin-bottom: 8px; display: grid; grid-template-columns: 22px 1fr; gap: 0 10px; }
+.item input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); cursor: pointer; }
+.item .what { font-weight: 600; cursor: pointer; }
+.item.done { border-color: var(--rule); background: var(--stone); }
+.item.done .what { text-decoration: line-through; text-decoration-thickness: 1px; }
+.item dl { grid-column: 2; margin: 6px 0 0; display: grid; grid-template-columns: 74px 1fr; gap: 4px 8px; font-size: 13px; }
+.item dt { font-size: 12px; font-weight: 600; color: var(--muted); padding-top: 1px; }
+.item dd { margin: 0; }
+.item dd.done-when { font-weight: 500; }
+.item .tags { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.rail .item dl { grid-template-columns: 1fr; gap: 0; }
+.rail .item dt { margin-top: 6px; }
+
+/* Open questions */
+.open { list-style: none; padding: 0; margin: 0; }
+.open li { position: relative; padding: 8px 0 8px 22px; border-bottom: 1px solid var(--hairline); }
+.open li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 10px; height: 10px; border: 1.5px dashed var(--ink); border-radius: 50%; }
+footer { border-top: 1px solid var(--hairline); padding: 16px 0 40px; color: var(--muted); font-size: 12.5px; }
+footer .ip { margin-top: 6px; }
+.stack-wrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); }
+table.stack-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }
+.stack-table th, .stack-table td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--hairline); }
+.stack-table thead th { font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--rule); }
+.stack-table td:first-child { font: 600 12px/1.6 var(--mono); color: var(--muted); }
+.stack-table td:nth-child(2) { font-weight: 600; }
+.stack-dev { margin-top: 8px; }
+.map td .runs { display: block; margin-top: 6px; font-size: 12px; }
+.map td .runs i { font-style: normal; font-weight: 600; color: var(--muted); margin-right: 4px; }
+table.deploy { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); }
+.deploy th, .deploy td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--hairline); }
+.deploy thead th { font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--rule); }
+@media screen and (max-width: 760px) {
+  .deploy thead { display: none; }
+  .deploy, .deploy tbody, .deploy tr, .deploy td { display: block; width: 100%; }
+  .deploy tr { border-bottom: 1px solid var(--rule); padding: 6px 0; }
+  .deploy td { border: 0; padding: 3px 10px; }
+}
+footer .next { color: var(--ink); font-size: 14px; margin-bottom: 6px; }
+noscript p { padding: 16px; border: 2px dashed var(--ink); border-radius: var(--radius); }
+
+@media (max-width: 600px) {
+  h1 { font-size: 24px; line-height: 30px; }
+  .count { min-width: 0; flex: 1 1 40%; }
+  .item dl { grid-template-columns: 1fr; gap: 0; }
+  .item dt { margin-top: 6px; }
+}
+
+@media print {
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --paper: #fff; --surface: #fff; --stone: #f1f0ec; --ink: #000; --ink-soft: #222; --muted: #444;
+    --hairline: #ccc; --rule: #999; --on-ink: #fff; color-scheme: light;
+  }
+  body { font-size: 12px; }
+  .actions, .no-print { display: none !important; }
+  header.top { border: 0; }
+  .layout { display: block; padding-top: 8px; }
+  .rail { position: static; max-height: none; overflow: visible; break-before: page; }
+  .table-wrap { overflow: visible; border: 0; }
+  table.map { min-width: 0; font-size: 11px; }
+  table.stack-table { min-width: 0; font-size: 12px; }
+  .stack-wrap { overflow: visible; }
+  .map thead th { position: static; }
+  .map th, .map td { padding: 5px 6px; }
+  .map tr, .item, .job, .ring { break-inside: avoid; }
+  .pill.verified, .pill.write, .pill.read-write, .chip.w, .ring.used .dot, .steps li.here, .gate.person::before, .bar i { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { text-decoration: none; }
+  section { margin-bottom: 20px; }
+  @page { size: landscape; margin: 12mm; }
+  .rings { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 20px; }
+  .rings::before { display: none; }
+  .ring .chips { flex-direction: row; flex-wrap: wrap; }
+  h2, h3, .section-head, .ring-row { break-after: avoid; page-break-after: avoid; }
+  .jobs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<noscript><div class="wrap"><p>This page draws the context map from the data block at the bottom of the file. Turn on JavaScript to see it, or read the JSON in the <code>agent-context-data</code> script tag.</p></div></noscript>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <nav class="suite" aria-label="Steps of /functional-copilot">
+        <span class="root">functional-copilot</span>
+        <ol class="steps">
+          <li><i>1</i>Research</li>
+          <li class="here" aria-current="step"><i>2</i>Context &amp; access</li>
+          <li><i>3</i>Spec &amp; build</li>
+          <li><i>4</i>Deploy</li>
+          <li><i>5</i>Secure &amp; govern</li>
+          <li class="learn">Learn</li>
+        </ol>
+        <span class="cmd">/agent-context</span>
+      </nav>
+      <span class="actions">
+        <button type="button" id="theme" aria-label="Theme: auto, light or dark">Theme: Auto</button>
+        <button type="button" id="print">Print</button>
+      </span>
+    </div>
+    <h1 id="title">Context map</h1>
+    <p class="meta-line" id="meta-line"></p>
+    <div class="alert-line" id="alert-line" hidden></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section id="rings-section" class="rings-hero">
+    <div class="section-head">
+      <div>
+        <h2>From the screen to the cloud</h2>
+        <p>Every source sits on the closest ring that works. Closer rings act as the person at the screen, see fresher data and need fewer secrets.</p>
+      </div>
+    </div>
+    <div class="ends"><span>← Inside the user's computer</span><span>Out to the cloud →</span></div>
+    <ol class="rings" id="rings"></ol>
+    <div class="legend" aria-label="Legend">
+      <span><span class="chip"><span class="id">S1</span>Read</span></span>
+      <span><span class="chip w"><span class="id">S2</span>Writes</span></span>
+      <span><span class="chip planned"><span class="id">S3</span>Planned</span></span>
+    </div>
+  </section>
+</div>
+
+<div class="wrap layout">
+  <main>
+    <section id="glance-section">
+      <div class="section-head"><div><h2>At a glance</h2></div></div>
+      <p class="summary" id="summary"></p>
+      <div class="counts" id="counts"></div>
+      <div class="meta" id="meta"></div>
+      <div class="example-note" id="example-note" hidden></div>
+    </section>
+
+    <section id="jobs-section">
+      <div class="section-head">
+        <div>
+          <h2>What each job needs</h2>
+          <p>From the user map: what the agent has to see, and the systems it has to touch, for each job.</p>
+        </div>
+      </div>
+      <div class="jobs" id="jobs"></div>
+    </section>
+
+    <section id="map-section">
+      <div class="section-head">
+        <div>
+          <h2>The context map</h2>
+          <p>One row per source. Who the agent acts as, how far its access reaches, whether it writes, how fresh the data is, and what a person has to approve.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="map" id="map">
+          <colgroup><col class="c-src"><col class="c-how"><col class="c-as"><col class="c-scope"><col class="c-acc"><col class="c-gate"><col class="c-status"></colgroup>
+          <thead><tr>
+            <th scope="col">Source · where it lives</th><th scope="col">How it connects</th>
+            <th scope="col">Acts as</th><th scope="col">Scope</th><th scope="col">Access · freshness</th>
+            <th scope="col">Gate</th><th scope="col">Status</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="legend" aria-label="Legend">
+        <span><span class="pill planned">planned</span> not built yet</span>
+        <span><span class="pill wired">wired</span> in the code</span>
+        <span><span class="pill verified">verified</span> a test or an end-to-end run proved it</span>
+        <span><span class="pill write">Write</span> changes something</span>
+        <span><span class="gate person">Person</span> a named person clicks</span>
+        <span><span class="gate rule">Rule</span> code allows or refuses</span>
+        <span><span class="gate none">None</span> read only</span>
+      </div>
+    </section>
+
+    <section id="deploy-section">
+      <div class="section-head">
+        <div>
+          <h2>For /deploy: what runs on a server</h2>
+          <p>Every row on rings 3 to 7, where it runs and the environment variables that hold its secrets. <span class="mono">/deploy</span> reads these. Names are the variable names only; the developer sets the values.</p>
+        </div>
+      </div>
+      <table class="deploy" id="deploy"><thead><tr><th scope="col">Source</th><th scope="col">Ring</th><th scope="col">Runs on</th><th scope="col">Secrets (env vars)</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section id="stack-section">
+      <div class="section-head">
+        <div>
+          <h2>The functional agent stack</h2>
+          <p>The suite's shared seven-layer table, from <span class="mono">/functional-copilot</span>. This map fills in layers 3 and 4 for one function, and the identity and gate parts of layer 7; the spec builds on it.</p>
+        </div>
+      </div>
+      <div class="stack-wrap">
+        <table class="stack-table">
+          <thead><tr><th scope="col">#</th><th scope="col">Layer</th><th scope="col">What it holds</th><th scope="col">CopilotKit piece</th><th scope="col">Per function</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td>Products and interfaces</td><td>Where people meet the agent: the function's own workspace, the cards and gates in it, and Slack or Teams for people who decide there</td><td>React v2 hooks in the workspace: <code>useComponent</code>, <code>useHumanInTheLoop</code>, <code>useAgent</code>; <code>CopilotChat</code> or <code>CopilotSidebar</code> only where it fits; <code>@copilotkit/a2ui-renderer</code>, <code>@copilotkit/mcp-apps-renderer</code>; the Channels SDK (<code>@copilotkit/channels-*</code>)</td><td>Built once</td></tr>
+          <tr><td>2</td><td>Domain capabilities</td><td>The jobs of one function (review, draft, check, compute, route) as tools over tested code</td><td><code>useFrontendTool</code> in the browser; <code>defineTool</code> in the CopilotKit Runtime on the server</td><td>Swapped</td></tr>
+          <tr><td>3</td><td>Context and knowledge</td><td>Policies, playbooks, history, live context, and the rules it learns</td><td><code>useAgentContext</code>; CopilotKit Intelligence: threads, memory, Automatic Learning (learning spaces, skills a person publishes, <code>learnedSkills</code>)</td><td>Swapped</td></tr>
+          <tr><td>4</td><td>Data and integrations</td><td>Systems of record, through APIs and MCP servers</td><td><code>BuiltInAgent</code>'s <code>mcpServers</code>; server-side tools in the runtime; fixtures behind frontend tools for v1</td><td>Built once</td></tr>
+          <tr><td>5</td><td>Agent harness</td><td>The loop that plans, calls tools and pauses for approval, over AG-UI</td><td>CopilotKit Runtime (<code>CopilotRuntime</code>, <code>createCopilotRuntimeHandler</code>) with <code>BuiltInAgent</code>; LangGraph, Mastra, Google ADK or Pydantic AI agents through their AG-UI integrations</td><td>Built once</td></tr>
+          <tr><td>6</td><td>Models</td><td>Any model you choose; the key stays on the server</td><td><code>BuiltInAgent</code>'s <code>model</code> (a provider/model id) and <code>maxSteps</code>; a scripted <code>LanguageModelV3</code> mock for demos and tests</td><td>Built once</td></tr>
+          <tr><td>7</td><td>Security and governance, around every layer</td><td>Who may do what, what is recorded, what can never happen</td><td>Gates in tool code with tests; <code>identifyUser</code> on the runtime; Intelligence analytics and the decision log; OpenBot for a governed coworker</td><td>Built once</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted stack-dev">Developer tool for every layer: the CopilotKit web inspector (<code>@copilotkit/web-inspector</code>, the provider's <code>enableInspector</code>). Trajectories (<code>@copilotkit/learning</code>) are off on hosted Intelligence today.</p>
+    </section>
+
+    <section id="open-section">
+      <div class="section-head"><div><h2>Open questions and not verified yet</h2></div></div>
+      <ul class="open" id="open"></ul>
+    </section>
+  </main>
+
+  <aside class="rail" id="checklist-section" aria-labelledby="checklist-title">
+    <div class="section-head">
+      <div>
+        <h2 id="checklist-title">Checklist</h2>
+        <p class="small">What, why, how and done-when for each item. Ticks stay in this browser.</p>
+      </div>
+      <button type="button" class="no-print" id="reset">Clear ticks</button>
+    </div>
+    <div class="progress"><span id="progress-text">0 of 0 done</span><span class="bar" aria-hidden="true"><i id="progress-bar"></i></span></div>
+    <div id="checklist"></div>
+  </aside>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="next" id="next"></div>
+    <div>Made with the <span class="mono">/agent-context</span> skill. Every CopilotKit name links to docs.copilotkit.ai or names a file in the starter.</div>
+    <div class="ip">Open-source example built with CopilotKit. Products named here are described for illustration; not affiliated with or endorsed by them.</div>
+    <div class="ip" id="disclaimer" hidden></div>
+  </div>
+</footer>
+
+<!--
+  THE DATA. The skill fills this JSON block and nothing else; the script below draws the page from it.
+  Strings take two bits of markup: `code` and [label](https://link). Never write "</" in a string
+  (write "<\/" if you must). Keep it valid JSON: double quotes, no trailing commas.
+
+  {
+    "function": "Legal · contract review",          the function and the workflow
+    "app": "Open Harvey",                            the copilot or app name
+    "headline": "One sentence: what it reads, and what waits for whom.",   the page's title
+    "date": "2026-11-05",
+    "people": "Maya Chen, Senior Counsel",           who uses it (optional)
+    "summary": "One or two sentences: what the agent needs and the rule it follows.",
+    "storageKey": "open-harvey",                     keeps this map's ticks apart from other maps
+    "example": "Shown only when set: a note that the data is fictional.",
+    "inputs": ["docs/copilot/user-map.html"],        what the map was built from
+    "jobs": [ { "id": "J1", "name": "…", "who": "…", "sees": ["S1"], "touches": ["S4"] } ],
+    "sources": [ {
+      "id": "S1", "name": "…", "short": "2-3 words for the rings diagram", "ring": 1,   ring 1-7, closest first
+      "where": "…", "how": "…",                      how: the CopilotKit or AG-UI piece, with a docs link or starter file
+      "actsAs": "…", "scope": "…",
+      "access": "read" | "write" | "read-write",
+      "freshness": "…",
+      "gate": { "kind": "none" | "rule" | "person", "text": "…", "also": [ { "kind": "rule", "text": "a second gate" } ] },   a write with no person or rule gate is flagged
+      "phase": "v1" | "later",                       optional; later = the path after v1 (default v1)
+      "status": "planned" | "wired" | "verified",
+      "runsOn": "where it runs: the browser, CopilotKit Runtime, a Channels worker, OpenBot…",   required on rings 3-7
+      "secretEnv": ["CLM_MCP_TOKEN"],                env var NAMES only ([] when none); required on rings 3-7
+      "note": "optional"
+    } ],
+    "checklist": [ { "id": "c1", "group": "Every source", "what": "…", "why": "…", "how": "names the CopilotKit piece", "done": "…", "about": ["S1"], "footnote": "optional: a generic alternative" } ],
+    "open": ["…"],
+    "next": "What /deploy takes from this map.",
+    "disclaimer": "optional: a product-specific line for the footer"
+  }
+-->
+<script type="application/json" id="agent-context-data">
+{
+  "function": "Post-production · assistant editing",
+  "app": "Cutline",
+  "date": "2026-11-05",
+  "people": "Ana Ruiz, editor. Theo Grant, producer (approves what goes to the client). Client reviewers outside the company",
+  "summary": "Cutline lives in a panel inside the editing app, beside the timeline. It sees the open sequence and the project's media on the editor's disk, finds selects in transcripts, and drafts edits as markers and rough-cut sequences. Anything that leaves the machine (audio to a transcription service, a cut to a review link, a note to the producer) waits for Ana's or Theo's click.",
+  "storageKey": "example-video-editor",
+  "example": "Worked example. Harbor & Pine Post, its people, clients and projects are fictional. \"The editing app\" stands for a desktop editor that hosts extension panels, such as Premiere Pro: check what your editor's panel SDK allows before you plan on it. Not affiliated with any editing-software or AI-video vendor.",
+  "inputs": [
+    "docs/copilot/user-map.json"
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "name": "Find selects for the interview cut",
+      "who": "Ana Ruiz, editor",
+      "sees": [
+        "S2",
+        "S4",
+        "S5",
+        "S12"
+      ],
+      "touches": [
+        "S1",
+        "S3",
+        "S7",
+        "S8"
+      ]
+    },
+    {
+      "id": "J2",
+      "name": "Assemble a rough cut from the script",
+      "who": "Ana Ruiz",
+      "sees": [
+        "S1",
+        "S2",
+        "S4",
+        "S9",
+        "S12"
+      ],
+      "touches": [
+        "S3"
+      ]
+    },
+    {
+      "id": "J3",
+      "name": "Send a cut for review",
+      "who": "Ana Ruiz; Theo Grant approves anything client-facing",
+      "sees": [
+        "S2",
+        "S6"
+      ],
+      "touches": [
+        "S6",
+        "S10"
+      ]
+    },
+    {
+      "id": "J4",
+      "name": "Turn review notes into timeline markers",
+      "who": "Ana Ruiz",
+      "sees": [
+        "S6"
+      ],
+      "touches": [
+        "S3"
+      ]
+    },
+    {
+      "id": "J5",
+      "name": "Log new footage overnight",
+      "who": "The assistant-editor coworker, scheduled by Theo",
+      "sees": [
+        "S4"
+      ],
+      "touches": [
+        "S5",
+        "S11"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "name": "Cutline's own state: the job, the selects list, the draft edit plan",
+      "ring": 1,
+      "where": "The panel's web view",
+      "how": "`useAgent()` shared state (`agent.state`, `agent.setState`) for the selects list both edit; `useAgentContext` for the job · [docs](https://docs.copilotkit.ai/shared-state)",
+      "actsAs": "Ana Ruiz",
+      "scope": "This project's panel state",
+      "access": "read-write",
+      "freshness": "Live: both sides see each change",
+      "gate": {
+        "kind": "rule",
+        "text": "Panel state only; nothing reaches the timeline except through S3's gate"
+      },
+      "status": "planned",
+      "short": "Selects and plan",
+      "runsOn": "The panel's web view on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S2",
+      "name": "The open sequence: playhead, selection, clips, markers",
+      "ring": 2,
+      "where": "The editing app's open project on Ana's workstation",
+      "how": "A plugin panel inside the editing app: the host's scripting API reads the sequence, `useAgentContext` sends it · [docs](https://docs.copilotkit.ai/shared-state/agent-readonly)",
+      "actsAs": "Ana Ruiz, in her own session of the editing app",
+      "scope": "The active sequence: clip names, in and out timecodes, tracks, markers. No media",
+      "access": "read",
+      "freshness": "Sent with every run; refreshed on selection change",
+      "gate": {
+        "kind": "none",
+        "text": "None: read only"
+      },
+      "status": "planned",
+      "short": "Open sequence",
+      "runsOn": "The editing app's panel on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S3",
+      "name": "Edits to the project: markers, selects bins, a rough-cut sequence",
+      "ring": 2,
+      "where": "The editing app's open project",
+      "how": "`useFrontendTool` handlers call the host's scripting API; `useHumanInTheLoop` shows the edit list before a sequence is built · [docs](https://docs.copilotkit.ai/human-in-the-loop)",
+      "actsAs": "Ana Ruiz",
+      "scope": "New markers and bins; new sequences named `CUTLINE_…`. Never a locked or delivered sequence",
+      "access": "write",
+      "freshness": "At the click",
+      "gate": {
+        "kind": "person",
+        "text": "Markers and bins are additive and undoable in the app, so no card; building or changing a sequence shows the edit list for Ana's click"
+      },
+      "status": "planned",
+      "short": "Timeline edits",
+      "runsOn": "The editing app's panel on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S4",
+      "name": "Project media on local disk",
+      "ring": 2,
+      "where": "The project folder on Ana's workstation or the shared storage it mounts: camera originals, proxies, audio",
+      "how": "Read through the panel's file access from a `useFrontendTool` handler, limited to the project folder. The runtime runs on the post house's server, so a local MCP server can't reach it · [docs](https://docs.copilotkit.ai/frontend-tools)",
+      "actsAs": "Ana's operating-system account, read-only",
+      "scope": "One project folder: file names, durations, timecode, reel names, proxies. Camera originals never leave the machine",
+      "access": "read",
+      "freshness": "Indexed when the project opens; re-indexed when files change",
+      "gate": {
+        "kind": "none",
+        "text": "None: read only"
+      },
+      "status": "planned",
+      "short": "Local media",
+      "runsOn": "The editing app's panel on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S5",
+      "name": "Transcripts and shot logs",
+      "ring": 3,
+      "where": "A speech-to-text service; transcripts stored in the project folder",
+      "how": "A server tool, `defineTool` on `BuiltInAgent`, calls the transcription API with the post house's key; the panel sends proxy audio only after the click · [docs](https://docs.copilotkit.ai/server-tools)",
+      "actsAs": "`svc-transcribe`, the post house's account, on behalf of Ana",
+      "scope": "Proxy audio of this project's clips",
+      "access": "read-write",
+      "freshness": "Once per clip; re-run when a clip changes",
+      "gate": {
+        "kind": "person",
+        "text": "Ana clicks Transcribe on a card naming the clips and the service",
+        "also": [
+          {
+            "kind": "rule",
+            "text": "Only for clients whose contract allows it: Theo sets that flag per client, and the tool checks it"
+          }
+        ]
+      },
+      "status": "planned",
+      "note": "Sending a client's audio to a third party is a write of that data.",
+      "short": "Transcripts",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": [
+        "TRANSCRIBE_API_KEY"
+      ]
+    },
+    {
+      "id": "S6",
+      "name": "Cloud review links and timecoded comments",
+      "ring": 3,
+      "where": "The team's video review service",
+      "how": "Server tools over the review service's API: `createReviewLink` is `defineTool({ ..., interrupt: true })`; `listComments` reads · [docs](https://docs.copilotkit.ai/server-tools)",
+      "actsAs": "Ana Ruiz's account on the review service; links carry her name",
+      "scope": "One project. Links expire in 7 days and need a password, both set in code",
+      "access": "read-write",
+      "freshness": "Comments read when Ana asks, with an as-of time",
+      "gate": {
+        "kind": "person",
+        "text": "Ana clicks Create link on a card showing the cut, version, expiry and audience",
+        "also": [
+          {
+            "kind": "person",
+            "text": "A client-facing link also needs Theo's yes (S10)"
+          }
+        ]
+      },
+      "status": "planned",
+      "short": "Review links",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": [
+        "REVIEW_OAUTH_CLIENT_ID",
+        "REVIEW_OAUTH_CLIENT_SECRET"
+      ]
+    },
+    {
+      "id": "S7",
+      "name": "The model provider",
+      "short": "Model provider",
+      "ring": 3,
+      "phase": "v1",
+      "where": "The post house's model provider, named in `BuiltInAgent`'s `model`",
+      "how": "`BuiltInAgent`'s `model` (`@copilotkit/runtime/v2`) in CopilotKit Runtime: each run sends the sequence context, transcript excerpts and tool results",
+      "actsAs": "The post house's account with the provider (the server's key)",
+      "scope": "Clip names, timecodes and transcript excerpts; never media",
+      "access": "write",
+      "freshness": "Every run",
+      "gate": {
+        "kind": "person",
+        "text": "Theo confirms per client that transcripts and notes may go to the provider",
+        "also": [
+          {
+            "kind": "rule",
+            "text": "The same per-client flag as transcription, checked before each run"
+          }
+        ]
+      },
+      "status": "planned",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": [
+        "OPENAI_API_KEY"
+      ]
+    },
+    {
+      "id": "S8",
+      "name": "Telemetry and logs",
+      "short": "Telemetry",
+      "ring": 3,
+      "phase": "v1",
+      "where": "CopilotKit Runtime's anonymous telemetry and the server's logs",
+      "how": "`COPILOTKIT_TELEMETRY_DISABLED=true` (or `DO_NOT_TRACK=1`), read by `@copilotkit/runtime`, turns the runtime's telemetry off",
+      "actsAs": "The server",
+      "scope": "Ids, counts and errors; no client names, transcripts or file paths in logs",
+      "access": "write",
+      "freshness": "Continuous",
+      "gate": {
+        "kind": "rule",
+        "text": "Off for client work; logs carry project ids only"
+      },
+      "status": "planned",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": []
+    },
+    {
+      "id": "S9",
+      "name": "Scripts, shot lists and client notes",
+      "ring": 4,
+      "where": "The project's folder in the team's cloud drive",
+      "how": "The drive's MCP server: `mcpServers: [{ type: \"http\", url, name: \"drive\" }]`, read tools only · [docs](https://docs.copilotkit.ai/mcp-servers)",
+      "actsAs": "Ana Ruiz, with her own drive token through a per-request `mcpClients` provider",
+      "scope": "The project's drive folder",
+      "access": "read",
+      "freshness": "Live per call",
+      "gate": {
+        "kind": "none",
+        "text": "None: read only"
+      },
+      "status": "planned",
+      "short": "Scripts and notes",
+      "runsOn": "CopilotKit Runtime (an `mcpClients` provider built per request)",
+      "secretEnv": [
+        "DRIVE_MCP_URL",
+        "DRIVE_OAUTH_CLIENT_ID",
+        "DRIVE_OAUTH_CLIENT_SECRET"
+      ],
+      "phase": "later"
+    },
+    {
+      "id": "S10",
+      "name": "Team chat: the project channel and the producer",
+      "ring": 5,
+      "where": "Slack or Teams: the project's internal channel, DMs to Theo",
+      "how": "Channels SDK: `createChannel({ identifyUser })`, a \"v3 ready\" card with Approve for client / Hold buttons (`channel.onInteraction`) · [docs](https://docs.copilotkit.ai/reference/channels)",
+      "actsAs": "Theo Grant, as Slack or Teams verifies him, mapped to the staff directory",
+      "scope": "The internal project channel and DMs to the producer. Never the client's shared channel",
+      "access": "read-write",
+      "freshness": "Pushed",
+      "gate": {
+        "kind": "person",
+        "text": "Theo's click approves a cut for the client; Ana can't approve her own"
+      },
+      "status": "planned",
+      "short": "Producer in chat",
+      "runsOn": "A Channels worker for a managed Slack or Teams channel: a long-running Node service with CopilotKit Runtime in Intelligence mode. The Slack and Teams credentials stay in Intelligence",
+      "secretEnv": [
+        "CPK_INTELLIGENCE_API_KEY",
+        "CHANNEL_CODE"
+      ],
+      "note": "v1 here, against the default, because Theo doesn't work in the editing app."
+    },
+    {
+      "id": "S11",
+      "name": "The overnight logging coworker",
+      "ring": 6,
+      "where": "OpenBot on the post house's infrastructure",
+      "how": "An OpenBot tenant package with the media index and transcript tools from an MCP server; `allow` rule per read tool, `ask` rule on `transcribe_clips` · [OpenBot](https://github.com/CopilotKit/openbot)",
+      "actsAs": "The assistant-editor coworker, with only its grants; the MCP server sees OpenBot's bearer token",
+      "scope": "New footage in the ingest folders of active projects",
+      "access": "read-write",
+      "freshness": "Nightly",
+      "gate": {
+        "kind": "person",
+        "text": "OpenBot `ask` rule on transcription: Theo confirms when he schedules the run; every call in Admin → Audit"
+      },
+      "status": "planned",
+      "note": "OpenBot adds MCP servers by https URL on a public hostname only; the media index is on the internal network.",
+      "short": "Logging coworker",
+      "runsOn": "OpenBot on the post house's infrastructure, with the media-index MCP server on an https hostname",
+      "secretEnv": [
+        "MEDIA_INDEX_MCP_TOKEN",
+        "OPENAI_API_KEY",
+        "CPK_INTELLIGENCE_API_KEY"
+      ],
+      "phase": "later"
+    },
+    {
+      "id": "S12",
+      "name": "House style and project memory",
+      "ring": 7,
+      "where": "CopilotKit Intelligence",
+      "how": "`useMemories()` with `project` scope (the client's lower-third style, no jump cuts in interviews) and `user` scope (Ana's naming habits); `useThreads` per project · [docs](https://docs.copilotkit.ai/intelligence/memories)",
+      "actsAs": "Ana Ruiz, resolved on the server by `identifyUser`",
+      "scope": "Project memories for the project team; user memories for Ana. No footage, no contract terms",
+      "access": "read-write",
+      "freshness": "Read on each run; saved when Ana confirms",
+      "gate": {
+        "kind": "person",
+        "text": "Cutline proposes a memory and Ana saves it; Theo can see and remove project memories"
+      },
+      "status": "planned",
+      "note": "Needs Intelligence with the memory entitlement.",
+      "short": "House style memory",
+      "runsOn": "CopilotKit Runtime in Intelligence mode",
+      "secretEnv": [
+        "CPK_INTELLIGENCE_API_KEY"
+      ],
+      "phase": "later"
+    }
+  ],
+  "checklist": [
+    {
+      "id": "every-row",
+      "group": "Every source",
+      "what": "Give every source one row on the closest ring that works.",
+      "why": "An unlisted source becomes an unreviewed credential; a source on a farther ring than it needs adds a secret and a boundary for nothing.",
+      "how": "Ring by ring: `useAgentContext` and `useAgent` (in the app), a `useFrontendTool` handler on the person's machine (on the computer), `defineTool` in `BuiltInAgent` (your server), `mcpServers` (org systems), the Channels SDK (people), an OpenBot coworker package (coworkers), CopilotKit Intelligence (memory). Details in the skill's `references/rings.md`.",
+      "done": "Every job's sees and touches point at a row, and `check-map.mjs` reports no unknown ids."
+    },
+    {
+      "id": "every-identity",
+      "group": "Every source",
+      "what": "Name whose identity each row acts as.",
+      "why": "The agent must never do more than the person it works for, and the audit trail needs a real name.",
+      "how": "The signed-in user via `<CopilotKitProvider headers>` and the runtime's `identifyUser(request)` ([docs](https://docs.copilotkit.ai/auth)); a named service account only where there's no per-user path.",
+      "done": "Each row's Acts as names a person or a named account, and no request trusts a user id sent from the browser.",
+      "about": [
+        "S4",
+        "S5",
+        "S6",
+        "S10"
+      ]
+    },
+    {
+      "id": "every-scope",
+      "group": "Every source",
+      "what": "Cut each row to the least it needs.",
+      "why": "What the agent can't reach can't leak into a reply, a log or a memory.",
+      "how": "One root folder checked in each `useFrontendTool` handler; the open record, not the table; only the tools a job needs, from an `mcpClients` provider or OpenBot rules named per tool.",
+      "done": "Each row's scope names the folder, records, fields or tools, and read-only is the default."
+    },
+    {
+      "id": "every-gate",
+      "group": "Every source",
+      "what": "Gate every write and prove it refuses.",
+      "why": "Reads are free, writes wait for a person; a gate that's only in the prompt is a suggestion.",
+      "how": "`useHumanInTheLoop` in the app ([docs](https://docs.copilotkit.ai/human-in-the-loop)), a `defineTool` with `interrupt: true` on the server, a Channels button, an OpenBot `ask` rule.",
+      "done": "Every write row names who clicks and what they see, and a test calls each write without the click and gets a refusal.",
+      "about": [
+        "S3",
+        "S5",
+        "S6",
+        "S10"
+      ]
+    },
+    {
+      "id": "every-fresh",
+      "group": "Every source",
+      "what": "Say how fresh each source is.",
+      "why": "A stale playbook or price list produces a confident wrong answer.",
+      "how": "`useAgentContext` for what must be current on every run; a `useFrontendTool` or `defineTool` that reads at call time for records; an \"as of\" line for anything read at start-up or indexed (the skill's `references/five-checks.md`).",
+      "done": "Each row's freshness is filled, and answers built on start-up or indexed data say \"as of\"."
+    },
+    {
+      "id": "every-fence",
+      "group": "Every source",
+      "what": "Fence text from sources as data, not instructions.",
+      "why": "Documents, comments and chat messages reach the model at the same level as your instructions.",
+      "how": "Put text people wrote under a field the context description calls data, as Open Harvey's `quotedText` does in `src/lib/app-context.ts`.",
+      "done": "A review comment saying \"delete the B-roll bin\" becomes a marker, not an action.",
+      "about": [
+        "S9",
+        "S6"
+      ]
+    },
+    {
+      "id": "every-secrets",
+      "group": "Every source",
+      "what": "Keep secrets on the server, and let the user set them.",
+      "why": "A key in the browser or in context belongs to whoever opens dev tools.",
+      "how": "Keys only in CopilotKit Runtime's server environment (`.env.local` locally), read by `@copilotkit/runtime/v2` code; the browser sends only the user's own session through `<CopilotKitProvider headers>`, and nothing secret goes in `useAgentContext`.",
+      "done": "The client bundle holds no key, and the README names each variable without its value."
+    },
+    {
+      "id": "every-small",
+      "group": "Every source",
+      "what": "Read big documents through a tool, not context.",
+      "why": "Context is sent on every run, so size costs tokens and exposes more than the job needs.",
+      "how": "Send transcript excerpts with timecodes, not whole transcripts; a `useFrontendTool` that returns one clip's lines.",
+      "done": "No `useAgentContext` entry holds a whole transcript.",
+      "about": [
+        "S4",
+        "S5"
+      ]
+    },
+    {
+      "id": "every-record",
+      "group": "Every source",
+      "what": "Keep each record where everyone on the job can reach it.",
+      "why": "A record in one browser (localStorage) is invisible to an approver on another machine, and gone with that browser.",
+      "how": "A `defineTool` on a per-request `BuiltInAgent` reads and writes the record on the server; the app's store becomes a cache of it · [docs](https://docs.copilotkit.ai/server-tools)",
+      "done": "The second person on the job sees the record on their own machine without a reload, and clearing one browser loses nothing."
+    },
+    {
+      "id": "every-model",
+      "group": "Every source",
+      "what": "Get the data owner's yes before content goes to the model provider.",
+      "why": "Everything in context and every tool result goes to the provider on each run, so document text leaves your boundary.",
+      "how": "`BuiltInAgent`'s `model` runs on the server with the key there; send sections, not whole documents; run a scripted `LanguageModelV3` mock until the yes, as Open Harvey's `chooseModel` does in `src/lib/server-data.ts`.",
+      "done": "The model provider's row names the provider, what each run sends and who agreed, and the build runs the mock until they have."
+    },
+    {
+      "id": "every-telemetry",
+      "group": "Every source",
+      "what": "Decide telemetry and logs on purpose.",
+      "why": "CopilotKit Runtime's anonymous telemetry is on unless you turn it off, and logs keep whatever the server prints.",
+      "how": "`COPILOTKIT_TELEMETRY_DISABLED=true` (or `DO_NOT_TRACK=1`) in the server's environment turns the runtime's telemetry off; log ids and counts, never document text; CopilotKit Intelligence stays off until you switch it on.",
+      "done": "The telemetry row says on or off and why, and a search of a day's logs finds no document text."
+    },
+    {
+      "id": "every-inspect",
+      "group": "Every source",
+      "what": "Watch what each run actually carries.",
+      "why": "The map is a plan; the AG-UI stream shows the context, tools and state the agent really got.",
+      "how": "The CopilotKit web inspector (`@copilotkit/web-inspector`), on with `enableInspector` on `<CopilotKitProvider>`: on by default on localhost in development; Open Harvey sets it in `src/components/LegalApp.tsx`.",
+      "done": "The inspector shows every ring 1 row's context entry on a run, and nothing the map keeps out."
+    },
+    {
+      "id": "app-selects",
+      "group": "In the app",
+      "what": "Share the selects list as agent state.",
+      "why": "Ana and Cutline both add and remove selects; one source of truth avoids lost edits.",
+      "how": "`useAgent()` with `agent.state` and `agent.setState` · [docs](https://docs.copilotkit.ai/shared-state)",
+      "done": "Ana removes a select and Cutline's next answer no longer lists it.",
+      "about": [
+        "S1"
+      ]
+    },
+    {
+      "id": "computer-panel",
+      "group": "On the computer",
+      "what": "Prove the panel can read the sequence and reach the runtime.",
+      "why": "Everything on rings 1 and 2 depends on the host's panel SDK.",
+      "how": "A spike panel that sends the playhead and selection with `useAgentContext` and gets an answer from the runtime.",
+      "done": "Moving the playhead changes Cutline's answer to \"what's under the playhead?\".",
+      "about": [
+        "S2"
+      ]
+    },
+    {
+      "id": "computer-root",
+      "group": "On the computer",
+      "what": "Limit media access to the project folder.",
+      "why": "Editors' disks hold every client's footage.",
+      "how": "The panel's file access, from a `useFrontendTool` handler that checks every path against the project root.",
+      "done": "A test asks for a file in another client's folder and is refused.",
+      "about": [
+        "S4"
+      ]
+    },
+    {
+      "id": "computer-edits",
+      "group": "On the computer",
+      "what": "Gate sequence edits; let markers ride on undo.",
+      "why": "A rebuilt sequence can wipe an editor's afternoon; a marker can't.",
+      "how": "`useHumanInTheLoop` card with the edit list before `buildSequence` runs · [docs](https://docs.copilotkit.ai/human-in-the-loop)",
+      "done": "`buildSequence` without the click is refused, and a locked sequence is never touched.",
+      "about": [
+        "S3"
+      ]
+    },
+    {
+      "id": "server-transcribe",
+      "group": "Your server",
+      "what": "Allow transcription per client, then per click.",
+      "why": "Sending a client's audio to a third party may break their contract.",
+      "how": "`defineTool` on `BuiltInAgent`; the tool checks the client's flag before it calls the service · [docs](https://docs.copilotkit.ai/server-tools)",
+      "done": "A clip from a client without the flag is refused, even after Ana's click.",
+      "about": [
+        "S5"
+      ]
+    },
+    {
+      "id": "server-review",
+      "group": "Your server",
+      "what": "Create review links with an interrupt tool, as Ana.",
+      "why": "A link is a copy of the cut outside the company.",
+      "how": "`defineTool({ name: \"createReviewLink\", interrupt: true })` on a per-request agent with Ana's token · [docs](https://docs.copilotkit.ai/server-tools)",
+      "done": "Every link has an expiry, a password and Ana's name, and none exists without her click.",
+      "about": [
+        "S6"
+      ]
+    },
+    {
+      "id": "mcp-drive",
+      "group": "Org systems",
+      "what": "Connect the drive's MCP server with read tools and Ana's token.",
+      "why": "Scripts and notes are the client's; the agent should see only what Ana can.",
+      "how": "`mcpClients` built per request with Ana's token · [docs](https://docs.copilotkit.ai/mcp-servers)",
+      "done": "The agent can open the project folder and nothing outside it.",
+      "about": [
+        "S9"
+      ]
+    },
+    {
+      "id": "channels-producer",
+      "group": "People",
+      "what": "Send Theo an approve-for-client card and record his click.",
+      "why": "Client deliveries are the producer's call, and he lives in chat.",
+      "how": "`createChannel({ identifyUser })`, buttons with `channel.onInteraction` · [docs](https://docs.copilotkit.ai/slack/identity-and-memory)",
+      "done": "A real click by Theo marks v3 approved; Ana's click on her own cut is refused.",
+      "about": [
+        "S10"
+      ]
+    },
+    {
+      "id": "openbot-grants",
+      "group": "Coworkers",
+      "what": "Grant the logging coworker each tool by name.",
+      "why": "It runs with nobody watching; a wildcard allow would let it upload anything.",
+      "how": "An `allow` rule per read tool and an `ask` rule on `transcribe_clips`, as in `starters/openbot-headcount/examples/northstar/hr-system/connect.ts`.",
+      "done": "Admin → Audit shows a night's reads with no prompt and transcription asking first.",
+      "about": [
+        "S11"
+      ]
+    },
+    {
+      "id": "memory-policy",
+      "group": "Memory",
+      "what": "Decide what Cutline may remember, at which scope.",
+      "why": "A memory is a write that every later run reads.",
+      "how": "`useMemories()` with `project` and `user` scope; the runtime's `memory: { access }` grant · [docs](https://docs.copilotkit.ai/intelligence/memories)",
+      "done": "Ana saves \"lower thirds in the client's font\" and it shows for the next editor on the project, not on other clients.",
+      "about": [
+        "S12"
+      ]
+    }
+  ],
+  "open": [
+    "Transcripts and notes go to the model provider on every run (S7). Theo confirms per client before a real model sees them; the spec decides this, from this row.",
+    "Which editing app and panel SDK? Check that a panel can call the timeline API, reach the runtime over the network and read the project folder (S2 to S4).",
+    "Where the runtime runs. Assumed: the post house's server, so local media comes through the panel, not a local MCP server.",
+    "Which clients allow third-party transcription (S5)? Theo to confirm per client. Assumed: off unless allowed.",
+    "Does the review service issue per-user API tokens (S6)? Assumed yes.",
+    "OpenBot needs an https MCP server on a public hostname (S11), and the media index is internal. Tunnel it, or leave the coworker out of v1.",
+    "Memory needs Intelligence with the memory entitlement (S12).",
+    "Every env var name here is a suggestion except `CPK_INTELLIGENCE_API_KEY`, `OPENAI_API_KEY` and the managed channel's `CHANNEL_CODE`; keep or rename them before `/deploy`."
+  ],
+  "next": "Next: `/functional-copilot` writes the spec from this map (`agent-context.json`) and builds the panel. Later, `/deploy` decides where the runtime runs, hosts the transcription and review-link tools and the Channels worker for S10, and places the OpenBot coworker near the media, and `/secure-governance` sets the per-client data rules.",
+  "headline": "Cutline reads the timeline and the media on the editor's machine; anything that leaves it waits for Ana's or Theo's click."
+}
+</script>
+<script>
+(function () {
+  "use strict";
+  // The seven rings, closest first. A source's "ring" is its index here, starting at 1.
+  var RINGS = [
+    { name: "In the app", piece: "useAgentContext · useAgent · useFrontendTool · useHumanInTheLoop" },
+    { name: "On the computer", piece: "useFrontendTool on the person's machine · useAttachments" },
+    { name: "Your server", piece: "defineTool in BuiltInAgent · CopilotKit Runtime" },
+    { name: "Org systems", piece: "mcpServers · mcpClients · MCP Apps renderer" },
+    { name: "People", piece: "Channels SDK · @copilotkit/channels-*" },
+    { name: "Coworkers", piece: "OpenBot coworker package" },
+    { name: "Memory", piece: "CopilotKit Intelligence · threads · memory · learning" }
+  ];
+
+  var data;
+  try { data = JSON.parse(document.getElementById("agent-context-data").textContent); }
+  catch (e) {
+    document.querySelector("main").innerHTML = '<p style="border:2px dashed;padding:16px;border-radius:8px">The data block is not valid JSON: ' + esc(String(e.message)) + "</p>";
+    return;
+  }
+  var sources = Array.isArray(data.sources) ? data.sources : [];
+  var byId = {};
+  sources.forEach(function (s) { byId[s.id] = s; });
+
+  // Storage that never breaks the page: private windows and blocked storage just forget.
+  var store = {
+    get: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+    del: function (k) { try { window.localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+  };
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+  }
+  // `code` and [label](https://…) only; everything else is escaped text.
+  function fmt(s) {
+    if (s === undefined || s === null) return "";
+    var h = esc(s);
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|#[\w-]+)\)/g, function (m, t, u) {
+      var ext = /^https?:/.test(u);
+      return '<a href="' + u + '"' + (ext ? ' target="_blank" rel="noopener"' : "") + ">" + t + "</a>";
+    });
+    return h.replace(/`([^`]+)`/g, function (m, c) { return "<code>" + c.replace(/([\/.])/g, "$1<wbr>") + "</code>"; });
+  }
+  function el(id) { return document.getElementById(id); }
+  function isWrite(s) { return s.access === "write" || s.access === "read-write"; }
+  function gatesOf(s) { var g = s.gate || {}; return [g].concat(Array.isArray(g.also) ? g.also : []); }
+  function gateMissing(s) { return isWrite(s) && !gatesOf(s).some(function (g) { return g && (g.kind === "person" || g.kind === "rule"); }); }
+  function chip(id) {
+    var s = byId[id];
+    if (!s) return '<span class="chip missing" title="No source with this id"><span class="id">' + esc(id) + "</span>missing</span>";
+    var cls = "chip" + (isWrite(s) ? " w" : "") + (s.status === "planned" ? " planned" : "");
+    return '<a class="' + cls + '" href="#' + esc(s.id) + '" title="' + esc(s.name + " · " + (isWrite(s) ? "writes" : "reads") + " · " + (s.status || "")) + '"><span class="id">' + esc(s.id) + '</span><span class="nm">' + esc(s.short || s.name) + (s.phase === "later" ? '<span class="later-mark"> · later</span>' : "") + "</span></a>";
+  }
+
+  // Header
+  document.title = (data.app ? data.app + ": " : "") + "agent context map";
+  el("title").textContent = data.headline || ("Context map" + (data.app ? " for " + data.app : ""));
+  el("meta-line").textContent = [data.function, data.app, data.date].filter(Boolean).join(" · ");
+  var meta = [];
+  if (data.function) meta.push("<span><b>Function</b> " + esc(data.function) + "</span>");
+  if (data.app) meta.push("<span><b>App</b> " + esc(data.app) + "</span>");
+  if (data.people) meta.push("<span><b>For</b> " + esc(data.people) + "</span>");
+  if (data.date) meta.push("<span><b>Date</b> " + esc(data.date) + "</span>");
+  if (data.inputs && data.inputs.length) meta.push("<span><b>Built from</b> " + data.inputs.map(function (i) { return fmt("`" + i + "`"); }).join(", ") + "</span>");
+  el("meta").innerHTML = meta.join("");
+  el("summary").innerHTML = fmt(data.summary || "");
+  if (data.example) { el("example-note").hidden = false; el("example-note").innerHTML = fmt(data.example); }
+
+  // Counts
+  var writes = sources.filter(isWrite);
+  var gated = writes.filter(function (s) { return !gateMissing(s); });
+  var ungated = writes.filter(gateMissing);
+  var verified = sources.filter(function (s) { return s.status === "verified"; }).length;
+  var wired = sources.filter(function (s) { return s.status === "wired"; }).length;
+  var counts = [
+    ["Sources", sources.length],
+    ["Rings used", RINGS.filter(function (r, i) { return sources.some(function (s) { return Number(s.ring) === i + 1; }); }).length + " of 7"],
+    ["Read only", sources.length - writes.length],
+    ["Write, gated", gated.length + " of " + writes.length],
+    ["Wired · verified", wired + " · " + verified],
+    ["In v1 · later", (sources.length - sources.filter(function (s) { return s.phase === "later"; }).length) + " · " + sources.filter(function (s) { return s.phase === "later"; }).length]
+  ];
+  var ch = counts.map(function (c) { return '<div class="count"><b>' + esc(c[1]) + "</b><span>" + esc(c[0]) + "</span></div>"; });
+  if (ungated.length) ch.push('<div class="count alert"><b>' + ungated.length + "</b><span>" + (ungated.length === 1 ? "write has" : "writes have") + " no gate: " + ungated.map(function (s) { return esc(s.id); }).join(", ") + "</span></div>");
+  el("counts").innerHTML = ch.join("");
+  if (ungated.length) { el("alert-line").hidden = false; el("alert-line").textContent = ungated.length + (ungated.length === 1 ? " write has" : " writes have") + " no gate: " + ungated.map(function (s) { return s.id; }).join(", "); }
+
+  // Rings
+  el("rings").innerHTML = RINGS.map(function (r, i) {
+    var here = sources.filter(function (s) { return Number(s.ring) === i + 1; });
+    return '<li class="ring' + (here.length ? " used" : "") + '"><span class="dot">' + (i + 1) + "</span><h3>" + esc(r.name) + '</h3><div class="piece">' + esc(r.piece) + '</div><div class="chips">' +
+      (here.length ? here.map(function (s) { return chip(s.id); }).join("") : '<span class="small muted">Not used</span>') + "</div></li>";
+  }).join("");
+
+  // Jobs
+  el("jobs").innerHTML = (data.jobs || []).map(function (j) {
+    return '<article class="job"><span class="eyebrow muted">' + esc(j.id || "") + "</span><h3>" + esc(j.name || "") + "</h3>" +
+      (j.who ? '<div class="who">' + esc(j.who) + "</div>" : "") +
+      "<dl><dt>Sees</dt><dd>" + ((j.sees || []).map(chip).join("") || '<span class="small muted">Nothing listed</span>') + "</dd>" +
+      "<dt>Touches</dt><dd>" + ((j.touches || []).map(chip).join("") || '<span class="small muted">Nothing: read only</span>') + "</dd></dl></article>";
+  }).join("") || '<p class="muted">No jobs yet. List them from the user map.</p>';
+
+  function envList(s) {
+    if (!Array.isArray(s.secretEnv)) return "";
+    return s.secretEnv.length ? s.secretEnv.map(function (v) { return "<code>" + esc(v) + "</code>"; }).join(" ") : "None";
+  }
+  function runsHtml(s) {
+    var out = "";
+    if (s.runsOn) out += '<span class="runs"><i>Runs on</i>' + fmt(s.runsOn) + "</span>";
+    if (Array.isArray(s.secretEnv)) out += '<span class="runs"><i>Secrets</i>' + envList(s) + "</span>";
+    return out;
+  }
+
+  // The map, grouped by ring
+  function cell(label, html, cls) {
+    var empty = !html;
+    return '<td data-label="' + esc(label) + '" class="' + (cls || "") + (empty ? " undecided" : "") + '"><div class="v">' + (empty ? "Not decided" : html) + "</div></td>";
+  }
+  var rows = [];
+  RINGS.forEach(function (r, i) {
+    var here = sources.filter(function (s) { return Number(s.ring) === i + 1; });
+    if (!here.length) return;
+    rows.push('<tr class="ring-row"><th colspan="7" scope="colgroup">' + (i + 1) + " · " + esc(r.name) + '<span class="mono">' + esc(r.piece) + "</span></th></tr>");
+    here.forEach(function (s) {
+      var acc = s.access === "read-write" ? "Read + write" : s.access === "write" ? "Write" : s.access === "read" ? "Read" : "";
+      var g = s.gate || {};
+      var gate = gateMissing(s)
+        ? '<span class="gate missing">No gate: add one</span>' + (g.text ? '<span class="note">' + fmt(g.text) + "</span>" : "")
+        : gatesOf(s).filter(function (x) { return x && x.text; }).map(function (x, i) {
+            return (i ? '<span class="and">and</span>' : "") + '<span class="gate ' + esc(x.kind || "none") + '">' + fmt(x.text) + "</span>";
+          }).join("");
+      rows.push('<tr class="source" id="' + esc(s.id) + '">' +
+        '<td class="src"><span class="id">' + esc(s.id) + "</span>" + (s.phase === "later" ? '<span class="later-tag">later</span>' : "") + "<b>" + esc(s.name || "") + "</b>" +
+        '<span class="where"><i>Lives in</i>' + (s.where ? fmt(s.where) : "Not decided") + "</span>" +
+        (s.note ? '<span class="note">' + fmt(s.note) + "</span>" : "") + "</td>" +
+        cell("How it connects", fmt(s.how) + runsHtml(s)) + cell("Acts as", fmt(s.actsAs)) + cell("Scope", fmt(s.scope)) +
+        cell("Access", acc ? '<span class="pill ' + esc(s.access) + '">' + acc + "</span>" +
+          '<span class="fresh"><i>Freshness</i>' + (s.freshness ? fmt(s.freshness) : "Not decided") + "</span>" : "") +
+        cell("Gate", gate) +
+        cell("Status", s.status ? '<span class="pill ' + esc(s.status) + '">' + esc(s.status) + "</span>" : "") + "</tr>");
+    });
+  });
+  var stray = sources.filter(function (s) { var n = Number(s.ring); return !(n >= 1 && n <= 7); });
+  if (stray.length) rows.push('<tr class="ring-row"><th colspan="7">Ring not set: ' + stray.map(function (s) { return esc(s.id); }).join(", ") + "</th></tr>");
+  el("map").querySelector("tbody").innerHTML = rows.join("");
+
+  // For /deploy: server-side rows (rings 3-7)
+  var serverRows = sources.filter(function (s) { return Number(s.ring) >= 3; });
+  el("deploy").querySelector("tbody").innerHTML = serverRows.map(function (s) {
+    return '<tr><td><a href="#' + esc(s.id) + '">' + esc(s.id) + "</a> " + esc(s.name || "") + "</td><td>" + esc(s.ring) + " · " + esc(RINGS[Number(s.ring) - 1].name) + "</td><td>" +
+      (s.runsOn ? fmt(s.runsOn) : '<b>Not decided</b>') + "</td><td>" + (Array.isArray(s.secretEnv) ? envList(s) : "<b>Not decided</b>") + "</td></tr>";
+  }).join("") || '<tr><td colspan="4" class="muted">No server-side rows.</td></tr>';
+  if (data.disclaimer) { el("disclaimer").hidden = false; el("disclaimer").innerHTML = fmt(data.disclaimer); }
+
+  // Open questions
+  el("open").innerHTML = (data.open || []).map(function (o) { return "<li>" + fmt(o) + "</li>"; }).join("") || '<li class="muted">Nothing open.</li>';
+  el("next").innerHTML = fmt(data.next || "");
+
+  // Checklist, ticks saved per map
+  var KEY = "agent-context/v1/" + (data.storageKey || data.app || "map");
+  var ticks = {};
+  try { ticks = JSON.parse(store.get(KEY) || "{}") || {}; } catch (e) { ticks = {}; }
+  var items = data.checklist || [];
+  var groups = [];
+  items.forEach(function (it) { var g = it.group || "Checklist"; if (groups.indexOf(g) < 0) groups.push(g); });
+  el("checklist").innerHTML = groups.map(function (g) {
+    return '<div class="group"><h3>' + esc(g) + "</h3>" + items.filter(function (it) { return (it.group || "Checklist") === g; }).map(function (it) {
+      var id = "item-" + String(it.id).replace(/[^\w-]/g, "");
+      return '<div class="item' + (ticks[it.id] ? " done" : "") + '" data-id="' + esc(it.id) + '">' +
+        '<input type="checkbox" id="' + id + '"' + (ticks[it.id] ? " checked" : "") + ">" +
+        '<label class="what" for="' + id + '">' + fmt(it.what) + "</label>" +
+        "<dl><dt>Why</dt><dd>" + fmt(it.why) + "</dd><dt>How</dt><dd>" + fmt(it.how) + '</dd><dt>Done when</dt><dd class="done-when">' + fmt(it.done) + "</dd></dl>" +
+        (it.footnote ? '<p class="foot"><b>Footnote</b> ' + fmt(it.footnote) + "</p>" : "") +
+        (it.about && it.about.length ? '<div class="tags">' + it.about.map(chip).join("") + "</div>" : "") + "</div>";
+    }).join("") + "</div>";
+  }).join("");
+  function progress() {
+    var done = items.filter(function (it) { return ticks[it.id]; }).length;
+    el("progress-text").textContent = done + " of " + items.length + " done";
+    el("progress-bar").style.width = (items.length ? Math.round(100 * done / items.length) : 0) + "%";
+  }
+  el("checklist").addEventListener("change", function (e) {
+    var box = e.target.closest(".item");
+    if (!box) return;
+    var id = box.getAttribute("data-id");
+    if (e.target.checked) ticks[id] = true; else delete ticks[id];
+    box.classList.toggle("done", e.target.checked);
+    store.set(KEY, JSON.stringify(ticks));
+    progress();
+  });
+  el("reset").addEventListener("click", function () {
+    ticks = {}; store.del(KEY);
+    Array.prototype.forEach.call(document.querySelectorAll(".item"), function (b) { b.classList.remove("done"); b.querySelector("input").checked = false; });
+    progress();
+  });
+  progress();
+
+  // Theme: Auto follows the system; the button cycles Auto, Light, Dark and remembers the choice.
+  var root = document.documentElement;
+  var MODES = ["auto", "light", "dark"];
+  var mode = store.get("agent-context/theme");
+  if (MODES.indexOf(mode) < 0) mode = "auto";
+  function applyTheme() {
+    if (mode === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", mode);
+    el("theme").textContent = "Theme: " + mode.charAt(0).toUpperCase() + mode.slice(1);
+  }
+  el("theme").addEventListener("click", function () {
+    mode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+    store.set("agent-context/theme", mode); applyTheme();
+  });
+  applyTheme();
+  el("print").addEventListener("click", function () { window.print(); });
+
+  // The page is drawn after load, so jump to a #S3-style link once the rows exist.
+  if (location.hash.length > 1) {
+    var target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (target) target.scrollIntoView();
+  }
+})();
+</script>
+</body>
+</html>

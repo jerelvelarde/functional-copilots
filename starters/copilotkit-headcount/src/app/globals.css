@@ -1,0 +1,361 @@
+@import "tailwindcss";
+
+/*
+ * Northstar People design tokens. Warm paper ground, white work surfaces, stone panels, warm ink and
+ * one Northstar green, rationed to the top bar, the primary action, the seal's inked strokes and
+ * "approved". Red does one job: what a person must act on. Three type sizes in the work area.
+ */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
+}
+
+@theme {
+  /* Only these three sizes exist: a document title, body and figures, labels and ids. Body is 14px for
+     legibility through Zoom compression. */
+  --text-*: initial;
+  --text-title: 22px;
+  --text-title--line-height: 28px;
+  --text-body: 14px;
+  --text-body--line-height: 21px;
+  --text-small: 12.5px;
+  --text-small--line-height: 17px;
+
+  /* Only these colours exist. */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-paper: #fafaf9;
+  --color-surface: #ffffff;
+  --color-stone: #f1f0ec;
+  --color-stone-deep: #e8e6e0;
+  --color-ink: #16140f;
+  --color-muted: #6b675f;
+  --color-hairline: #e4e2dc;
+  --color-rule: #d4d1c9;
+  --color-green: #1e4634;
+  --color-green-deep: #15332a;
+  --color-green-tint: #e8efea;
+  --color-red: #b42318;
+  --color-red-tint: #fbebe9;
+  --color-amber: #7a5a12;
+  --color-amber-tint: #f6efdc;
+  --color-highlight: #f3e4b0;
+  --color-on-green: #fafaf9;
+
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --shadow-raised: 0 1px 2px rgb(22 20 15 / 0.05), 0 4px 12px -6px rgb(22 20 15 / 0.08);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Browser surfaces: they carry the design too */
+
+html {
+  background: var(--color-paper);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #d3e2d8;
+  color: var(--color-ink);
+}
+
+input,
+textarea,
+select {
+  caret-color: var(--color-green);
+}
+
+::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+/* Fields draw their own focus: a green border and a soft ring (see BusinessCase.tsx inputClass). */
+:is(input, textarea, select):focus-visible {
+  outline: none;
+}
+
+p,
+blockquote,
+li {
+  text-wrap: pretty; /* no single word stranded on a last line */
+}
+
+a {
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cfcbc2 transparent;
+}
+
+/* Ids (REQ-2027-021, POL-COMP-01, skill v1) never break across lines. */
+.font-mono {
+  white-space: nowrap;
+}
+
+.font-serif {
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* Section headings inside the document: small caps carry the hierarchy, not size. */
+.section-label {
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Motion grammar: one authored moment per change. Everything is visible by default. */
+
+/* A derived figure that changed gets a warm highlight that fades, once. */
+@keyframes figure-flash {
+  0%,
+  25% {
+    background-color: var(--color-highlight);
+  }
+  100% {
+    background-color: rgb(243 228 176 / 0);
+  }
+}
+.figure-flash {
+  animation: figure-flash 1800ms cubic-bezier(0.16, 1, 0.3, 1) 1;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 0 0 2px transparent;
+}
+
+/* The seal: a stroke inks in when its rule or signature changes. Shapes carry pathLength="1". */
+@keyframes seal-ink {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.seal-ink {
+  stroke-dasharray: 1 1;
+  animation: seal-ink 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--ink-delay, 0ms);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.work-spinner {
+  animation: spin 900ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figure-flash,
+  .seal-ink,
+  .work-spinner {
+    animation: none;
+  }
+  .seal-ink {
+    stroke-dasharray: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   CopilotKit's chat, drawn in the same language. The v2 chat is styled by data-testid (its v1 class
+   names do not exist in v2). Unlayered rules here win over the chat's layered utilities. */
+
+.copilot-surface [data-copilotkit] {
+  --background: #ffffff;
+  --foreground: #16140f;
+  --card: #ffffff;
+  --card-foreground: #16140f;
+  --popover: #ffffff;
+  --popover-foreground: #16140f;
+  --primary: #1e4634;
+  --primary-foreground: #fafaf9;
+  --secondary: #f1f0ec;
+  --secondary-foreground: #16140f;
+  --muted: #f1f0ec;
+  --muted-foreground: #6b675f;
+  --accent: #f1f0ec;
+  --accent-foreground: #16140f;
+  --border: #e4e2dc;
+  --input: #e4e2dc;
+  --ring: #1e4634;
+  --radius: 6px;
+  --cpk-default-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.copilot-surface [data-testid="copilot-chat"] {
+  background: transparent;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/* The transcript */
+.copilot-surface [data-testid="copilot-scroll-content"] > div {
+  max-width: none;
+}
+.copilot-surface [data-testid="copilot-message-list"] {
+  gap: 0;
+  padding-top: 16px;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  color: var(--color-ink);
+  margin-block: 2px 14px;
+}
+/* The assistant's prose only (its markdown container), never the cards drawn inside the message */
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  color: var(--color-ink);
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose :is(p, li) {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  margin: 0;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose p + p {
+  margin-top: 8px;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose :is(ul, ol) {
+  margin-block: 6px;
+  padding-left: 16px;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose ul {
+  list-style: disc outside;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose ol {
+  list-style: decimal outside;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose li {
+  margin-block: 4px;
+  padding-left: 2px;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose li > p {
+  margin: 0;
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose li::marker {
+  color: var(--color-muted);
+}
+.copilot-surface [data-testid="copilot-assistant-message"] .cpk\:prose strong {
+  font-weight: 600;
+}
+
+/* Back to the latest message: a small hairline button, not a floating disc */
+.copilot-surface [data-testid="copilot-scroll-to-bottom"] {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--shadow-raised);
+}
+
+/* A person's message: a quiet stone note on the right, not a coloured bubble */
+.copilot-surface [data-testid="copilot-user-message"] {
+  margin-block: 10px 12px;
+}
+.copilot-surface [data-testid="copilot-user-message"] > div {
+  background: var(--color-stone);
+  color: var(--color-ink);
+  border: 1px solid var(--color-hairline);
+  border-radius: 8px 8px 2px 8px;
+  padding: 8px 12px;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+}
+
+/* The work summary line of the "turn" display */
+.copilot-surface [data-testid="copilot-work-summary"] {
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+}
+
+/* Suggestion chips. CopilotKit draws its own at the end of the transcript; the app pins them above the
+   composer instead (copilot/ChatPanel.tsx ChatComposer), so the transcript's copy is hidden. */
+.copilot-surface [data-testid="copilot-suggestions"] {
+  display: none;
+}
+
+/* The composer, pinned: a paper edge above it so the transcript never runs under it */
+.copilot-surface [data-testid="copilot-input-overlay"] {
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0), #ffffff 14px);
+}
+/* The transcript's scroller reserves a scrollbar gutter on both edges (an inline style), which insets it
+   11px with classic scrollbars and 0px with overlay ones. Drop it, so the transcript, the chips and the
+   composer share one 16px gutter on every machine. */
+.copilot-surface [data-testid="copilot-chat"] [style*="scrollbar-gutter"] {
+  scrollbar-gutter: auto !important;
+}
+.copilot-surface [data-testid="copilot-chat-input"] {
+  background: #ffffff;
+  border: 1px solid var(--color-rule);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(22 20 15 / 0.04);
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.copilot-surface [data-testid="copilot-chat-input"]:focus-within {
+  border-color: var(--color-green);
+  box-shadow: 0 0 0 3px rgb(30 70 52 / 0.1);
+}
+.copilot-surface [data-testid="copilot-chat-textarea"] {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  color: var(--color-ink);
+}
+.copilot-surface [data-testid="copilot-chat-textarea"]:focus-visible {
+  outline: none; /* the composer's own border shows focus */
+}
+.copilot-surface [data-testid="copilot-chat-textarea"]::placeholder {
+  color: var(--color-muted);
+}
+.copilot-surface [data-testid="copilot-send-button"] {
+  background: var(--color-green);
+  color: var(--color-on-green);
+  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+}
+.copilot-surface [data-testid="copilot-send-button"]:hover:not(:disabled) {
+  background: var(--color-green-deep);
+}
+.copilot-surface [data-testid="copilot-send-button"]:disabled {
+  background: var(--color-stone);
+  color: var(--color-muted);
+  opacity: 1;
+}
+.copilot-surface [data-testid="copilot-loading-cursor"] {
+  background: var(--color-green);
+}

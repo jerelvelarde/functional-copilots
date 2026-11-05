@@ -1,0 +1,107 @@
+# Skills this package ships. Each one becomes a deployment skill on boot: it shows in the `/` menu of
+# a Bot that holds it, and an administrator can grant it to other Bots from Admin -> Skills.
+#
+# What a skill is in OpenBot, because it decides how this file is written:
+#   - An instruction, not a capability. It can only ask a Bot to use tools that Bot was granted.
+#   - Its instruction reaches the model when somebody picks it with `/` in the OpenBot composer.
+#     It is not added to every run, and Slack and Teams have no `/` menu. That is why Hana's system
+#     prompt in agents.yaml carries the workflow too: the skill is the fuller version of it for the
+#     web composer, and its `summary` and `tools` drive per-run tool selection.
+#   - `tools:` declares what a skill needs, as `<serverId>/<toolName>`. Naming a tool grants
+#     nothing. `northstar-hr` is the id the README gives the Northstar HR MCP server when adding it,
+#     so these refs match once that server is added and its tools are granted to Hana.
+skills:
+  - slug: headcount-request
+    title: Draft a headcount request
+    summary: >-
+      Turn "I need to hire someone" into an approval-ready business case: plan fit, band, cost,
+      budget and approvers, each with its policy id, then submit it for approval.
+    instructions: |-
+      Take this headcount request from the first question to an approval-ready business case, using the Northstar HR tools for every fact and every figure.
+
+      1. Intake (POL-HC-01). Every request needs role title, level (L3 to L7), location, start quarter, request type (net-new or backfill) and a justification of at least two sentences: what work the role unblocks and what happens if it is not filled. Infer what the request plainly implies and say what you inferred: "senior engineer" is L5 Senior Software Engineer; "next quarter" is the nextQuarter get_team_plan returns; a team the requester leads is their team. Ask for the rest in one message, three questions at most. Do not ask for anything you can infer, and do not ask for base salary: the band midpoint is the default.
+
+      2. Check. Call check_request with team, level, location, start quarter and request type (and base salary, start date or agency recruiting if the requester gave them). If it returns blockers, report them with their policy ids and stop there: a blocked request does not get a business case. If it lists things still needed, ask for them.
+
+      3. Report the checks, one line each, in this order, quoting the tool's figures and ending each line with its policy id: plan fit (POL-HC-02, or POL-HC-03 for a backfill), location and tier (POL-COMP-02), band and where the base sits (POL-COMP-01), start date and approve-by date (POL-HC-04), fully loaded annual cost (POL-FIN-02), FY2027 impact (POL-FIN-01), budget remaining and headroom (POL-FIN-01), approval chain and whether the CFO is on it (POL-APR-01, POL-APR-02).
+
+      4. Draft the business case with this template. Keep the headings and their order, and leave a line out only when it does not apply. Figures are the tool's, quoted exactly; never compute, round or restate one in your own arithmetic. Annual run-rate and FY2027 impact are always two separate sections: Finance asks for them separately because one is the recurring cost and the other is this year's budget hit.
+
+      **Headcount request: <role title> (<level>), <team>**
+      **Summary.** One or two sentences: the hire, where, when, and the ask.
+      **Role.** Title and level; location and tier (POL-COMP-02); start date, its quarter, and the approve-by date (POL-HC-04); net-new or backfill.
+      **Why now** (POL-HC-01). The requester's justification: what it unblocks and what happens if the role is not filled.
+      **Plan fit** (POL-HC-02 or POL-HC-03). Approved, opened and remaining for the quarter.
+      **Compensation** (POL-COMP-01). Band minimum, midpoint and maximum; proposed base; the one-line reason if above the midpoint.
+      **Annual run-rate** (POL-FIN-02). Fully loaded annual cost, with the tool's breakdown line.
+      **FY2027 impact** (POL-FIN-01, POL-FIN-02). Prorated cost plus one-time costs, with the tool's line.
+      **Budget** (POL-FIN-01). Remaining personnel budget, whether it fits, headroom after.
+      **Approvals** (POL-APR-01, POL-APR-02). The chain in order, and why the CFO is or is not on it.
+      **Open items.** Anything still needed, or "None".
+
+      5. When anything changes, call check_request again and say what moved without being asked: a base above the midpoint needs a one-line reason (POL-COMP-01); a fully loaded cost above $350,000, an L7, or an out-of-plan request adds the CFO (POL-APR-02); the FY2027 impact and headroom change (POL-FIN-01). Redraft the affected sections.
+
+      6. Submit only when the requester asks. Call submit_headcount_request with the business case, the role title, the justification, any reason or offset the request needs, and the same structured inputs check_request last used, base_salary included. Do not send figures or approvers: Northstar HR computes the run-rate, FY2027 impact, budget left and approver chain from those inputs and records them, and it refuses a request with one of them missing. The business case is stored as your narrative, as written, so its figures must be the ones check_request returned. In every argument, write "compensation" or "salary", never "pay", and keep out the words OpenBot's safety floor stops on (payment, billing, purchase, refund, wire, credentials, passwords, API keys, access tokens, admin role, security settings): a submit containing one is handed to the requester and never runs. The requester sees an approval card before anything is submitted. Report the request id, the first approver, the rest of the chain and the recorded figures only once the tool returns them; if it refuses, say why and fix only what it names; if the requester declines, say it was not submitted.
+
+      If a Northstar HR tool is not available or returns an error, say which one and stop before giving figures. A business case with a guessed number in it is worse than none.
+    tools:
+      - northstar-hr/get_team_plan
+      - northstar-hr/get_comp_band
+      - northstar-hr/calculate_hire_cost
+      - northstar-hr/check_request
+      - northstar-hr/submit_headcount_request
+      - northstar-hr/get_request_status
+
+  - slug: hire-cost-check
+    title: Check what a hire costs
+    summary: >-
+      Find the band, fully loaded cost, FY2027 impact, budget headroom and approvers for a level,
+      location and quarter, without drafting a request.
+    instructions: |-
+      Answer a what-if about one hire without drafting or submitting anything.
+
+      Call get_comp_band for the band and calculate_hire_cost for the cost; add check_request when the team is known, for plan fit, budget and approvers. Quote every figure exactly as the tool returned it, with its policy id: band (POL-COMP-01), fully loaded annual cost as the annual run-rate (POL-FIN-02), FY2027 impact as a separate figure (POL-FIN-01), budget headroom (POL-FIN-01), and whether the CFO would be added (POL-APR-02). Never compute a figure yourself; to compare options, call the tool once per option and put the results side by side as bullets.
+
+      If the level, location or quarter is missing, ask for it. If a tool errors, say which and stop. End by offering to turn it into a request with /headcount-request.
+    tools:
+      - northstar-hr/get_team_plan
+      - northstar-hr/get_comp_band
+      - northstar-hr/calculate_hire_cost
+      - northstar-hr/check_request
+
+  # THE LEARNED SKILL. Shipped, and deliberately granted to nobody: it is what the workshop's
+  # "learning later" segment publishes after a person has reviewed it.
+  #
+  # The evidence is in data/approval-history.jsonl and is not in the written policy: Platform requests
+  # REQ-2026-071 (4 days), REQ-2026-093 (5 days) and REQ-2026-117 (6 days) were each sent back because
+  # the role gets production access and nobody had said which systems, at what level, reviewed by whom.
+  #
+  # To publish it, add `- security-access-justification` to Hana's `skills:` in agents.yaml (one line
+  # is already there, commented out) and restart OpenBot with
+  # `bash scripts/stop.sh && bash scripts/start.sh`, or grant it from Admin -> Skills. `start.sh`
+  # alone keeps a server that is already running, and the package is only read at boot.
+  #
+  # In production, CopilotKit Intelligence's Automatic Learning proposes a skill like this from real
+  # threads, a person reviews and publishes it in Intelligence, and OpenBot delivers the published
+  # version into every run of the Bots assigned to that Learning container. See the README.
+  - slug: security-access-justification
+    title: Add a security and access justification
+    summary: >-
+      For platform, infrastructure and SRE roles with production access, add the security and access
+      justification approvers keep sending requests back for.
+    instructions: |-
+      Add a security and access justification to this headcount request whenever the role will get production access: any Platform Infrastructure role, any site reliability, infrastructure or platform engineer, anyone joining an on-call rotation, and anyone with admin rights on clusters, cloud accounts or production data. Approvers have sent Platform requests back for exactly this three times (REQ-2026-071, REQ-2026-093, REQ-2026-117), adding four to six days each time. It is not in the written policy, so do not cite a policy id for it; say it is what approvers ask for.
+
+      Ask the requester, in one message, for what you do not already know:
+      1. Which systems the person will reach (for example production Kubernetes clusters, cloud accounts, CI/CD, databases, observability).
+      2. The access level on each, as one of three: read-only, deploy, or elevated (full control, what people often call admin), and whether they join on-call.
+      3. Who reviews and approves that access, and how often it is reviewed. Jordan Blake, Head of Security, is the reviewer named in past send-backs; confirm rather than assume.
+
+      Never invent systems or access levels; if the requester does not know yet, write "To be confirmed with Jordan Blake (Head of Security)" for that item and list it under Open items.
+
+      Add this section to the business case, after Why now:
+      **Security and access.** Each system with its access level (read-only, deploy or elevated); on-call yes or no; who reviews the access and how often.
+
+      When submitting, pass the same answers to submit_headcount_request as structured fields: production_access, one entry per system with its level as read_only, deploy or elevated; on_call; and access_reviewer.
+
+      Use those three level names in the section and in the arguments even when the requester says "admin role", "credentials", "passwords", "API keys" or "access tokens": write "elevated" for admin-level access and "secrets" for anything that stores them. OpenBot's safety floor hands any submit containing those words to the requester instead of running it, and no rule can switch it off.

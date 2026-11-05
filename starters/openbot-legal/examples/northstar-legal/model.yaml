@@ -1,0 +1,9 @@
+# The same model block as the shipped example package, with a model our OpenAI project can reach.
+# `credential_secret_ref` names a stored credential, never a key: with nothing stored under that name,
+# the server reads OPENAI_API_KEY from the environment. For Anthropic, set `provider: anthropic`, a
+# Claude model id as `default_model`, and ANTHROPIC_API_KEY.
+model:
+  provider: openai
+  credential_secret_ref: openai-api-key
+  # Pick a model your key's OpenAI project can access (its model list); another id fails every turn.
+  default_model: gpt-5.4

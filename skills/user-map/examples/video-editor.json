@@ -1,0 +1,763 @@
+{
+  "schema": "user-map/1",
+  "meta": {
+    "role": "Video editor",
+    "function": "Post-production",
+    "app": "Premiere Pro",
+    "route": "plugin",
+    "shape": "workspace assist",
+    "building": "A panel inside the editing app, beside the timeline: a UXP plugin panel in Premiere Pro running the CopilotKit React app, with the runtime on your server. CopilotKit inside that panel is Assumed until checklist item C1 proves it",
+    "date": "2026-11-05",
+    "preparedFor": "Jerel's example for the workshop",
+    "research": "web",
+    "headline": "An editing copilot that lives in the timeline",
+    "path": {
+      "role": "Turns hours of footage into a cut that a producer approves",
+      "software": "Timeline editor: media bins, source and program monitors, timeline, inspector",
+      "copilot": "A panel beside the timeline; its rough cut lands as a new sequence"
+    },
+    "oneLine": "An editing copilot that lives in a panel inside the editing app, beside the timeline. It reads the open sequence, the playhead and the selected clips, finds takes and builds selects, drafts a rough cut as a new sequence, and waits for the editor before anything changes their own sequence or goes out for review."
+  },
+  "role": {
+    "summary": "An editor turns hours of footage into a cut that a producer or client approves. On a team, an assistant editor ingests and organises the media first; the editor builds the story from rough cut to fine cut; review notes come back pinned to timecodes; after picture lock, color and sound take over.",
+    "measuredOn": [
+      {
+        "text": "A first cut to the producer by the deadline",
+        "ev": "assumed"
+      },
+      {
+        "text": "Review rounds before approval (vague notes add rounds)",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "Deliverables on spec and on time",
+        "ev": "assumed"
+      }
+    ],
+    "day": [
+      {
+        "label": "Organising and logging footage",
+        "share": 20,
+        "ev": "assumed"
+      },
+      {
+        "label": "Finding the right takes",
+        "share": 25,
+        "ev": "assumed"
+      },
+      {
+        "label": "Building and refining the cut",
+        "share": 35,
+        "ev": "assumed"
+      },
+      {
+        "label": "Working through review notes",
+        "share": 15,
+        "ev": "assumed"
+      },
+      {
+        "label": "Exports and deliverables",
+        "share": 5,
+        "ev": "assumed"
+      }
+    ],
+    "people": [
+      {
+        "name": "Assistant editor",
+        "relation": "ingests, syncs and organises the media into bins",
+        "ev": "assumed"
+      },
+      {
+        "name": "Producer or director",
+        "relation": "reviews each cut and leaves notes at timecodes; approves the cut",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Colorist and sound mixer",
+        "relation": "take the locked cut; everything they do depends on picture lock",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "Client",
+        "relation": "gives final approval before release",
+        "ev": "assumed"
+      }
+    ]
+  },
+  "software": {
+    "primary": {
+      "name": "Adobe Premiere Pro",
+      "why": "Where the cut is made: media organised in a project panel, a clip previewed in a source monitor, the sequence built on the timeline and played back in a program monitor.",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    "around": [
+      {
+        "name": "Frame.io",
+        "why": "Review: the cut goes up for comment, and reviewers' comments come back into the timeline as markers at the matching timecode.",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Shared storage and proxies",
+        "why": "Footage is backed up and turned into lighter proxy files before editing starts.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "AI editing workspaces, such as Kino.ai",
+        "why": "A newer category: an editing product where people and AI agents work on the same footage. It shows editors already accept AI inside the edit.",
+        "ev": "sourced",
+        "src": [
+          4
+        ]
+      }
+    ],
+    "pattern": {
+      "name": "Timeline editor",
+      "summary": "Everything sits around one sequence and is anchored to time. Media bins hold the footage; a source monitor previews one clip so the editor can mark the moment they want; the timeline holds the sequence as clips on video and audio tracks; a program monitor plays the sequence wherever the playhead sits. An inspector shows the settings of whatever is selected.",
+      "object": "The sequence: clips on tracks over time, with markers",
+      "selection": "Clips on the timeline, an in-to-out range, or a clip in a bin",
+      "open": "One sequence on the timeline, one clip in the source monitor, the playhead's frame in the program monitor",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    "layout": {
+      "columns": "1fr 1.3fr 1.3fr 1fr",
+      "rows": "1fr 1fr",
+      "areas": [
+        "bins source program inspector",
+        "bins timeline timeline copilot"
+      ]
+    },
+    "regions": [
+      {
+        "id": "bins",
+        "name": "Media bins",
+        "holds": "Imported footage, audio and graphics, in folders",
+        "does": "Organise, search and open clips",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "source",
+        "name": "Source monitor",
+        "holds": "One clip, before it goes into the cut",
+        "does": "Scrub, mark in and out, pick the take",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "program",
+        "name": "Program monitor",
+        "holds": "The sequence, playing from the playhead",
+        "does": "Watch the cut, judge the pacing",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "timeline",
+        "name": "Timeline",
+        "holds": "Clips on video and audio tracks, with markers",
+        "does": "Arrange, trim, cut, add titles and transitions",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "inspector",
+        "name": "Inspector",
+        "holds": "Settings of the selected clip: effects, motion, audio level",
+        "does": "Adjust what's selected",
+        "ev": "assumed"
+      },
+      {
+        "id": "copilot",
+        "name": "Copilot panel",
+        "holds": "A plugin panel: the ask, the proposals and the gates",
+        "does": "Ask, review a proposal, apply or keep it",
+        "new": true,
+        "ev": "sourced",
+        "src": [
+          5,
+          6
+        ]
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "J1",
+      "when": "footage lands for a new project",
+      "want": "have every clip transcribed, logged and tagged, with the best takes pulled into a selects bin",
+      "so": "start on the story instead of scrubbing hours of footage",
+      "often": "Every project",
+      "pain": "Logging is slow, and poor organisation causes problems that grow later",
+      "first": true,
+      "ev": "sourced",
+      "src": [
+        3,
+        4
+      ]
+    },
+    {
+      "id": "J2",
+      "when": "I start the assembly",
+      "want": "start from a stringout built from the script or the best interview answers",
+      "so": "react to a cut instead of a blank timeline",
+      "often": "Every project",
+      "pain": "The first pass is mostly mechanical",
+      "ev": "assumed"
+    },
+    {
+      "id": "J3",
+      "when": "review notes come back",
+      "want": "turn each note into a marker and a proposed change at its timecode",
+      "so": "work through a round without missing a note",
+      "often": "Every review round",
+      "pain": "Vague notes add rounds",
+      "ev": "sourced",
+      "src": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "J4",
+      "when": "a producer asks whether we have a shot of something",
+      "want": "search the footage by what's said and shown",
+      "so": "answer in seconds",
+      "often": "Daily",
+      "pain": "Scrubbing through bins from memory",
+      "ev": "assumed"
+    },
+    {
+      "id": "J5",
+      "when": "I hand off to color and sound",
+      "want": "prepare, label and export the locked sequence to their spec",
+      "so": "hand off without questions coming back",
+      "often": "Every project",
+      "pain": "Late picture changes force rework downstream",
+      "ev": "sourced",
+      "src": [
+        3
+      ]
+    },
+    {
+      "id": "J6",
+      "when": "the cut is approved",
+      "want": "have captions, versions and deliverables prepared to spec",
+      "so": "deliver without a night of exports",
+      "often": "Every project",
+      "pain": "Exporting versions one by one",
+      "ev": "assumed"
+    }
+  ],
+  "flows": [
+    {
+      "id": "F1",
+      "name": "Footage to an approved cut",
+      "trigger": "a shoot's footage arrives on a drive",
+      "outcome": "a cut the producer has approved",
+      "steps": [
+        {
+          "who": "Assistant editor",
+          "region": "bins",
+          "what": "Ingests the media, backs it up, makes proxies and syncs sound.",
+          "time": "Half a day",
+          "weight": 3,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Assistant editor",
+          "region": "bins",
+          "what": "Logs each clip (names, notes, transcripts, tags) and sorts it into bins, then hands the project over.",
+          "time": "Hours per shoot day",
+          "weight": 5,
+          "kind": "handoff",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "region": "source",
+          "what": "Scrubs the takes and marks the best moments into a selects sequence.",
+          "time": "Hours",
+          "weight": 6,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Builds the assembly, then the rough cut for story, then the fine cut for pacing.",
+          "time": "Days",
+          "weight": 8,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Editor",
+          "place": "Frame.io",
+          "what": "Uploads the cut for review.",
+          "time": "Minutes",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            2
+          ]
+        },
+        {
+          "who": "Producer",
+          "place": "Frame.io",
+          "what": "Watches the cut and leaves notes at timecodes.",
+          "time": "A day or more",
+          "weight": 4,
+          "kind": "wait",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Brings the notes in as markers and works through them.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            2
+          ]
+        },
+        {
+          "who": "Producer or client",
+          "place": "Frame.io",
+          "what": "Approves the cut, or sends another round.",
+          "time": "Per round",
+          "weight": 3,
+          "kind": "approval",
+          "ev": "assumed"
+        }
+      ],
+      "timeGoes": "Logging and finding the takes, before any story exists, then the wait between review rounds. Vague notes add rounds. The times here are Assumed: ask two editors how long each step takes on a real project.",
+      "write": {
+        "what": "Picture lock: the approved sequence is locked and exported for color and sound",
+        "system": "the editing app's project",
+        "who": "The editor locks and exports it once the producer approves",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    },
+    {
+      "id": "F2",
+      "name": "Picture lock to delivery",
+      "trigger": "the producer approves the cut",
+      "outcome": "masters and social versions delivered",
+      "steps": [
+        {
+          "who": "Producer",
+          "place": "Frame.io",
+          "what": "Declares picture lock: no more picture changes.",
+          "time": "One decision",
+          "weight": 1,
+          "kind": "approval",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Prepares and labels the tracks and exports for color and sound.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Colorist and mixer",
+          "place": "their own tools",
+          "what": "Grade the picture and mix the sound against the locked cut.",
+          "time": "Days",
+          "weight": 6,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Brings back the graded picture and the mix, then adds captions.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "place": "export",
+          "what": "Exports the masters and each social version.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Client",
+          "place": "Frame.io",
+          "what": "Gives final approval before release.",
+          "time": "A day",
+          "weight": 2,
+          "kind": "approval",
+          "ev": "assumed"
+        }
+      ],
+      "timeGoes": "Rework when the picture changes after lock, and exporting versions one at a time."
+    }
+  ],
+  "placement": {
+    "surface": {
+      "region": "copilot",
+      "also": [
+        "timeline",
+        "bins",
+        "program"
+      ],
+      "text": "The copilot is a panel inside the editing app, docked beside the timeline under the inspector, so it sees what the editor sees: the open sequence, the playhead and the selection. Its work lands where an editor already looks: takes in a selects bin, a rough cut as a new sequence that plays in the program monitor, and markers at the timecodes it's talking about. In Premiere Pro it's a UXP plugin panel. Adobe says React runs in UXP panels after a build step; CopilotKit there is untested until the spike in C1.",
+      "notThis": "A chat window floating over the edit that can't see the sequence, answers \"try cutting at 01:12\" in text, and leaves the editor to make every change by hand.",
+      "ev": "assumed"
+    },
+    "reads": [
+      {
+        "text": "The open sequence: clips, tracks, in and out points, markers",
+        "detail": "Read through the editing app's plugin API (UXP in Premiere Pro) and sent with useAgentContext: clip ids, names and times, never the media itself",
+        "ev": "assumed"
+      },
+      {
+        "text": "The playhead position and the selected clips or range",
+        "detail": "What \"this\" and \"here\" mean when the editor asks",
+        "ev": "assumed"
+      },
+      {
+        "text": "Bin contents with their transcripts and tags",
+        "detail": "From the logging step: the copilot searches words and tags, not video frames",
+        "ev": "assumed"
+      },
+      {
+        "text": "Review notes as markers, with timecode and author",
+        "detail": "Imported from the review tool",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "text": "Project rules: delivery specs, naming, caption style",
+        "ev": "assumed"
+      }
+    ],
+    "does": [
+      {
+        "name": "findTakes",
+        "text": "Searches transcripts and tags for moments that match a description, such as every take where she mentions the launch.",
+        "ev": "assumed"
+      },
+      {
+        "name": "buildSelects",
+        "text": "Puts the matches into a selects bin, with in and out points.",
+        "ev": "assumed"
+      },
+      {
+        "name": "proposeRoughCut",
+        "text": "Builds a rough cut from the selects as a new sequence, through the plugin API, never editing the editor's own sequence.",
+        "ev": "assumed"
+      },
+      {
+        "name": "addMarker",
+        "text": "Adds a marker at a timecode, with a note.",
+        "ev": "assumed"
+      },
+      {
+        "name": "movePlayhead",
+        "text": "Jumps the playhead and the program monitor to the moment it's talking about.",
+        "ev": "assumed"
+      }
+    ],
+    "renders": [
+      {
+        "name": "showTakes",
+        "text": "Take cards in the panel: a frame strip, the transcript line and the duration, with Play and Add to selects.",
+        "detail": "Interactive cards: Play opens the take in the source monitor",
+        "ev": "assumed"
+      },
+      {
+        "name": "showCutSummary",
+        "text": "A card for the proposed cut: clip count, length, which script beats it covers, and what it left out.",
+        "ev": "assumed"
+      },
+      {
+        "name": "showNotesRound",
+        "text": "One card per review round: each note, its timecode, the proposed change and whether it's done.",
+        "ev": "assumed"
+      }
+    ],
+    "waits": [
+      {
+        "name": "applyToSequence",
+        "text": "Moving clips from the rough cut into the editor's own sequence: the card lists what it adds, moves and removes, with Apply or Keep as proposal.",
+        "ev": "assumed"
+      },
+      {
+        "name": "removeMedia",
+        "text": "Deleting or replacing any clip or media the editor placed.",
+        "ev": "assumed"
+      },
+      {
+        "name": "sendForReview",
+        "text": "Uploading a cut for the producer or client to review.",
+        "ev": "assumed"
+      },
+      {
+        "name": "exportDeliverables",
+        "text": "Rendering and delivering masters and versions.",
+        "ev": "assumed"
+      }
+    ],
+    "shared": [
+      {
+        "text": "The proposal: a rough-cut sequence and a selects bin that both the editor and the copilot change. The editor's trims always win; the copilot re-reads them and never restores its own in-point.",
+        "detail": "The editing app's project is the shared record: tools read and write it through the plugin API, and the panel sends what changed with useAgentContext (or AG-UI agent state via useAgent if your agent owns the edit)",
+        "ev": "assumed"
+      },
+      {
+        "text": "Markers: both add them, and both mark review notes as done.",
+        "ev": "assumed"
+      }
+    ],
+    "learns": [
+      {
+        "text": "Takes the editor rejects or re-trims from the copilot's selects.",
+        "ev": "assumed"
+      },
+      {
+        "text": "Notes producers repeat across projects (keep titles inside the safe area, no jump cuts in interviews), proposed as a house rule that a lead editor publishes.",
+        "detail": "CopilotKit Intelligence; a person publishes before the rule takes effect",
+        "ev": "assumed"
+      }
+    ]
+  },
+  "checklist": [
+    {
+      "id": "C1",
+      "what": "Prove CopilotKit runs in a panel inside the editing app",
+      "why": "Everything else on this list assumes it, and a one-day spike settles it.",
+      "how": "Build the React panel with UXP's build step, wrap it in CopilotKitProvider pointing at your runtime URL, and register one frontend tool that calls the plugin API.",
+      "piece": "CopilotKitProvider + useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/quickstart",
+      "file": "starters/open-harvey/src/components/LegalApp.tsx",
+      "done": "A UXP panel in Premiere Pro chats with your runtime, and one tool adds a marker to the open sequence."
+    },
+    {
+      "id": "C2",
+      "what": "Put the sequence, the playhead and the selection in context",
+      "why": "\"Tighten this\" only works if the copilot knows what \"this\" is.",
+      "how": "Read the sequence's clip list, the playhead time and the selection through the plugin API, and register each as its own context entry. Send ids and times, not media.",
+      "piece": "useAgentContext",
+      "docs": "https://docs.copilotkit.ai/agent-app-context",
+      "file": "starters/open-harvey/src/copilot/useAppContext.ts",
+      "done": "Asking \"what's under the playhead?\" names the clip without the editor describing it."
+    },
+    {
+      "id": "C3",
+      "what": "Make the footage searchable as text, then give the copilot a search tool",
+      "why": "The copilot searches transcripts and tags, not pixels; logging is the slowest part of the day.",
+      "how": "Transcribe and tag clips at ingest in your pipeline; a findTakes frontend tool searches them and a buildSelects tool fills a selects bin.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/copilot/useReviewTools.ts",
+      "done": "\"Every take where she mentions the launch\" returns timecoded takes from the bins."
+    },
+    {
+      "id": "C4",
+      "what": "Draw takes as cards the editor can play and keep",
+      "why": "An editor judges a take by watching it, not by reading about it.",
+      "how": "Register showTakes as an interactive component: Play opens the take in the source monitor, Add puts it in selects.",
+      "piece": "useComponent",
+      "docs": "https://docs.copilotkit.ai/generative-ui/your-components/interactive",
+      "file": "starters/open-harvey/src/copilot/useGenerativeUI.tsx",
+      "done": "Clicking Play on a take card cues it in the source monitor."
+    },
+    {
+      "id": "C5",
+      "what": "Propose the cut as a new sequence, never in the editor's own",
+      "why": "The editor's sequence is the record; the copilot works beside it until someone says yes.",
+      "how": "A proposeRoughCut tool builds a new sequence from the selects through the plugin API. Handlers read live state when they run.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/copilot/useReviewTools.ts",
+      "done": "The rough cut plays in the program monitor and the editor's own sequence is unchanged."
+    },
+    {
+      "id": "C6",
+      "what": "Gate every change to the real sequence",
+      "why": "One wrong apply can wreck a day's cut; the editor decides.",
+      "how": "applyToSequence as a human-in-the-loop card listing what it adds, moves and removes, with Apply or Keep as proposal.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useProposePlan.tsx",
+      "done": "Keep as proposal changes nothing; Apply changes exactly what the card listed."
+    },
+    {
+      "id": "C7",
+      "what": "Let the copilot hear the editor's trims",
+      "why": "Shared work means the copilot reacts to the editor's changes and never undoes them.",
+      "how": "When the editor trims a clip in the rough cut, post a short message and start a run; queue it while the agent is busy.",
+      "piece": "useAgent + useCopilotKit",
+      "docs": "https://docs.copilotkit.ai/shared-state",
+      "file": "starters/open-harvey/src/copilot/useTellCopilot.ts",
+      "done": "Re-trimming a clip in the rough cut makes the copilot acknowledge it and never restore its own in-point."
+    },
+    {
+      "id": "C8",
+      "what": "Turn a review round into a checklist of changes",
+      "why": "Vague notes add rounds; a list with timecodes and status ends them.",
+      "how": "Import notes as markers; the copilot proposes a change per note with addMarker and shows the round as a card.",
+      "piece": "useComponent",
+      "docs": "https://docs.copilotkit.ai/generative-ui/your-components/display-only",
+      "file": "starters/open-harvey/src/copilot/useGenerativeUI.tsx",
+      "done": "Each imported note has a marker, a proposed change and a status, and the card shows what's left."
+    },
+    {
+      "id": "C9",
+      "what": "Gate review uploads and exports",
+      "why": "What leaves the edit suite reaches a producer or a client.",
+      "how": "sendForReview and exportDeliverables as human-in-the-loop cards naming the version and the recipients.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useRequestApproval.tsx",
+      "done": "Nothing is uploaded or exported without a click that names the version and who receives it."
+    },
+    {
+      "id": "C10",
+      "what": "Record rejected takes and repeated notes",
+      "why": "The house style lives in producers' heads until it's written down.",
+      "how": "Store each rejection and note with who and when; propose a house rule from repeats; a lead editor publishes it.",
+      "piece": "CopilotKit Intelligence",
+      "docs": "https://docs.copilotkit.ai/learning",
+      "file": "starters/open-harvey/src/lib/learning.ts",
+      "done": "A note that comes back on three projects shows up as a proposed house rule a person can publish."
+    },
+    {
+      "id": "C11",
+      "what": "Watch the context and the tool calls in the web inspector while you build",
+      "why": "When \"tighten this\" goes wrong, you need to see what the agent was told the selection was and which tool it picked.",
+      "how": "Leave enableInspector on CopilotKitProvider in development: it shows the agent, the AG-UI events, the registered frontend tools and the shared context for each run.",
+      "piece": "CopilotKit web inspector",
+      "docs": "https://docs.copilotkit.ai/inspector",
+      "file": "starters/open-harvey/src/components/LegalApp.tsx",
+      "done": "During a run, the inspector shows the sequence, playhead and selection entries and each findTakes call."
+    }
+  ],
+  "validate": {
+    "who": [
+      "An editor who cuts interviews or branded content every week",
+      "An assistant editor who ingests and logs footage",
+      "A producer who reviews cuts and leaves notes"
+    ],
+    "ask": [
+      "On a typical shoot day, how long do logging and finding the takes really take?",
+      "Would a copilot panel docked beside the timeline work for you, or would you rather call it from a command bar?",
+      "Would you let a copilot put clips on a ghost track? What would you need to see before you apply it?",
+      "How do review notes reach you today, and which are hardest to act on?",
+      "Which changes must never happen without your click: deleting media, replacing clips, exporting?"
+    ]
+  },
+  "sources": [
+    {
+      "id": 1,
+      "title": "Get started with Premiere Pro",
+      "publisher": "Adobe",
+      "url": "https://www.adobe.com/learn/premiere-pro/web/get-started-premiere-pro",
+      "supports": "The four panels used for editing (project panel, source monitor, timeline, program monitor) and what each is for.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 2,
+      "title": "Team review with Frame.io",
+      "publisher": "Adobe",
+      "url": "https://www.adobe.com/us/learn/premiere-pro/web/team-review-with-frame-io",
+      "supports": "Reviewers comment on an uploaded cut, and their comments come back into the timeline as markers at the matching timecode.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 3,
+      "title": "Post-production stages, from editing to final delivery",
+      "publisher": "C&I Studios",
+      "url": "https://c-istudios.com/post-production-stages-step-by-step-guide-from-editing-to-final-delivery/",
+      "supports": "Ingest, backups, proxies and logging come first; rough cut, fine cut, then picture lock; color and sound depend on the locked cut; vague feedback adds revision rounds.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 4,
+      "title": "Kino AI",
+      "publisher": "Y Combinator company page",
+      "url": "https://www.ycombinator.com/companies/kino-ai",
+      "supports": "An editing product where people and AI agents work on the same footage.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 5,
+      "title": "Premiere Pro UXP",
+      "publisher": "Adobe Developer",
+      "url": "https://developer.adobe.com/premiere-pro/uxp/",
+      "supports": "Premiere Pro has a built-in plugin framework, UXP, for panels and tools inside the app.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 6,
+      "title": "UXP tech stack",
+      "publisher": "Adobe Developer",
+      "url": "https://developer.adobe.com/uxp/guides/explanation/tech-stack/",
+      "supports": "Frameworks such as React run in UXP panels after a local build step; UXP supports a subset of HTML and CSS, so check its API reference.",
+      "accessed": "2026-11-05"
+    }
+  ]
+}

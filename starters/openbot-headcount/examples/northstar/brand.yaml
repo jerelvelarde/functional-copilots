@@ -1,0 +1,6 @@
+# Northstar Software, the workshop's fictional company. Neutral on purpose: no `skin:`, so the app
+# keeps OpenBot's default theme. To theme it, add `skin: { stylesheet: theme.css }` and a theme.css
+# beside this file (only `:root` and `.dark` blocks of approved variables; see docs/configuration.md).
+tenant:
+  id: northstar
+  product_name: Northstar

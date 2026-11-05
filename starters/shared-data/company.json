@@ -1,0 +1,42 @@
+{
+  "company": "Northstar Software",
+  "note": "Fictional company. Every number here is invented for the workshop.",
+  "fiscalYear": {
+    "label": "FY2027",
+    "start": "2027-01-01",
+    "end": "2027-12-31",
+    "quarters": {
+      "Q1": { "start": "2027-01-01", "end": "2027-03-31" },
+      "Q2": { "start": "2027-04-01", "end": "2027-06-30" },
+      "Q3": { "start": "2027-07-01", "end": "2027-09-30" },
+      "Q4": { "start": "2027-10-01", "end": "2027-12-31" }
+    }
+  },
+  "currency": "USD",
+  "people": [
+    { "id": "dana", "name": "Dana Kim", "title": "Director of Engineering, Platform Infrastructure", "team": "platform", "role": "hiring_manager" },
+    { "id": "marcus", "name": "Marcus Lee", "title": "VP Engineering", "team": "engineering", "role": "department_head" },
+    { "id": "priya", "name": "Priya Raman", "title": "Finance Business Partner, R&D", "team": "finance", "role": "finance_bp" },
+    { "id": "elena", "name": "Elena Ortiz", "title": "Chief Financial Officer", "team": "finance", "role": "cfo" },
+    { "id": "sam", "name": "Sam Okafor", "title": "HR Business Partner, Engineering", "team": "people", "role": "hr_bp" },
+    { "id": "jordan", "name": "Jordan Blake", "title": "Head of Security", "team": "security", "role": "security" }
+  ],
+  "costModel": {
+    "description": "Fully loaded annual cost = base + target bonus + annual equity + benefits + employer taxes. FY impact = fully loaded annual x (months employed in FY / 12) + one-time costs.",
+    "benefitsRate": 0.18,
+    "employerTaxRate": 0.08,
+    "targetBonusRateByLevel": { "L3": 0.10, "L4": 0.10, "L5": 0.15, "L6": 0.15, "L7": 0.20 },
+    "annualEquityByLevel": { "L3": 15000, "L4": 25000, "L5": 45000, "L6": 70000, "L7": 110000 },
+    "oneTime": {
+      "recruitingInternal": 15000,
+      "recruitingAgencyRateOfBase": 0.20,
+      "equipment": 4000
+    },
+    "defaultStartDayOfQuarter": "first day of the quarter's second month (recruiting lead time)"
+  },
+  "approvalThresholds": {
+    "cfoAboveFullyLoadedAnnual": 350000,
+    "cfoForLevels": ["L7"],
+    "recruitingLeadTimeDays": 60
+  }
+}

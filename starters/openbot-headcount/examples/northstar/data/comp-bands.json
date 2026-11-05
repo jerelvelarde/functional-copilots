@@ -1,0 +1,41 @@
+{
+  "note": "Annual base salary bands in USD, by level and location tier. Fictional.",
+  "locations": {
+    "New York": "tier1",
+    "San Francisco": "tier1",
+    "Seattle": "tier2",
+    "Boston": "tier2",
+    "Austin": "tier2",
+    "Remote (US)": "tier3"
+  },
+  "levels": {
+    "L3": "Software Engineer",
+    "L4": "Software Engineer II",
+    "L5": "Senior Software Engineer",
+    "L6": "Staff Software Engineer",
+    "L7": "Principal Software Engineer"
+  },
+  "bands": {
+    "tier1": {
+      "L3": { "min": 125000, "mid": 150000, "max": 175000 },
+      "L4": { "min": 150000, "mid": 175000, "max": 200000 },
+      "L5": { "min": 185000, "mid": 212000, "max": 240000 },
+      "L6": { "min": 225000, "mid": 258000, "max": 290000 },
+      "L7": { "min": 270000, "mid": 310000, "max": 350000 }
+    },
+    "tier2": {
+      "L3": { "min": 115000, "mid": 138000, "max": 161000 },
+      "L4": { "min": 138000, "mid": 161000, "max": 184000 },
+      "L5": { "min": 170000, "mid": 195000, "max": 221000 },
+      "L6": { "min": 207000, "mid": 237000, "max": 267000 },
+      "L7": { "min": 248000, "mid": 285000, "max": 322000 }
+    },
+    "tier3": {
+      "L3": { "min": 106000, "mid": 128000, "max": 149000 },
+      "L4": { "min": 128000, "mid": 149000, "max": 170000 },
+      "L5": { "min": 157000, "mid": 180000, "max": 204000 },
+      "L6": { "min": 191000, "mid": 219000, "max": 247000 },
+      "L7": { "min": 230000, "mid": 264000, "max": 298000 }
+    }
+  }
+}

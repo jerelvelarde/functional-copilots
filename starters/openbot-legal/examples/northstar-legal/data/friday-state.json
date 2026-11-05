@@ -1,0 +1,53 @@
+{
+  "note": "Friday morning, where slide 14 leaves the story. Thursday: Maya kept her own §8.2 clause (finding F3, 6 months of fees with a $1,000,000 data-breach cap), gave Rachel the reason and sent Acme for approval; Rachel Adler approved; Jordan Blake sent it back; Rachel published PB-SEC-01 v1. Thursday: sent at 10:00 (the web app's story clock), Rachel approved at 11:20, Jordan sent it back at 14:05, Rachel published PB-SEC-01 at 16:15. Acme's evidence is attached from acme-security-evidence.json when the seed loads.",
+  "now": "2026-11-06T09:00",
+  "publishedRules": [
+    { "id": "PB-SEC-01", "version": 1, "publishedBy": "Rachel Adler", "publishedAt": "2026-11-05T16:15" }
+  ],
+  "matters": {
+    "acme-msa": {
+      "matterId": "acme-msa",
+      "stage": "sent_back",
+      "redlines": {
+        "F3": "Each party's total liability arising out of or relating to this Agreement will not exceed the fees paid by Northstar in the six (6) months before the event giving rise to the claim, except that liability for data-protection breaches is capped at $1,000,000."
+      },
+      "reasons": {
+        "F3": "Acme won't go above 6 months. The $1M data-breach cap covers the exposure we care about."
+      },
+      "route": [
+        { "approverId": "rachel", "status": "approved", "at": "2026-11-05T11:20", "comment": "" },
+        {
+          "approverId": "jordan",
+          "status": "sent_back",
+          "at": "2026-11-05T14:05",
+          "comment": "Ask Acme for their SOC 2 Type II report and latest pen-test summary before we sign. We need this whenever a vendor holds customer data."
+        },
+        { "approverId": "elena", "status": "queued", "at": null, "comment": "" }
+      ],
+      "submittedAt": "2026-11-05T10:00",
+      "evidence": null,
+      "log": [
+        { "at": "2026-11-05T09:12", "by": "Northstar Legal", "event": "Received Acme Cloud's Master Services Agreement" },
+        { "at": "2026-11-05T10:00", "by": "Maya Chen", "event": "Sent for approval: Rachel Adler → Jordan Blake → Elena Ortiz" },
+        { "at": "2026-11-05T11:20", "by": "Rachel Adler", "event": "Approved" },
+        {
+          "at": "2026-11-05T14:05",
+          "by": "Jordan Blake",
+          "event": "Sent back: \"Ask Acme for their SOC 2 Type II report and latest pen-test summary before we sign. We need this whenever a vendor holds customer data.\""
+        }
+      ]
+    },
+    "brightwater-order-form": {
+      "matterId": "brightwater-order-form",
+      "stage": "unreviewed",
+      "redlines": {},
+      "reasons": {},
+      "route": [],
+      "submittedAt": null,
+      "evidence": null,
+      "log": [
+        { "at": "2026-11-05T16:40", "by": "Northstar Legal", "event": "Received Brightwater Metrics' Order Form" }
+      ]
+    }
+  }
+}

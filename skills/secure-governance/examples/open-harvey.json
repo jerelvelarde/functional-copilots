@@ -1,0 +1,204 @@
+{
+  "app": "Open Harvey",
+  "function": "Legal",
+  "workflow": "Vendor contract review against Northstar's playbook",
+  "date": "2026-11-05",
+  "mode": "prototype",
+  "headline": {
+    "prototype": "Safe for a laptop demo. Put sign-in in front of the agent before the pilot goes online.",
+    "production": "A strong demo, not yet a product. Identity, an audit trail, a data map and a runbook come first."
+  },
+  "summary": {
+    "prototype": "Ready for a stage demo on a laptop, not yet for a deployed pilot. Every write waits for a person's click and keys stay on the server. Four things stop at partial: the runtime endpoint has no sign-in once it leaves 127.0.0.1, the scripted mode has never been checked against a real-model run, the decision log records the demo persona and the story clock, and Intelligence is wired but off.",
+    "production": "Built as a demo, and it shows. The gates, the routing rules and the decision log are product-grade ideas, but none of them is checked on the server against a signed-in person. Identity, a server-side audit trail, a data map, an incident runbook and limits are all still to build."
+  },
+  "next": {
+    "prototype": [
+      "Before the legal team opens a deployed copy, check the session in the CopilotKit Runtime's `onRequest` hook in `src/app/api/copilotkit/[[...slug]]/route.ts`, send it with `CopilotKitProvider`'s `headers`, and cover `/api/intelligence-status` too (P2).",
+      "Resolve the signed-in user in `identifyUser`, write that person and the real time into the decision log, then turn the Intelligence switch on for the pilot (P5, P6).",
+      "Run the demo script once on the real model, and add the `.env*` rule to the host's upload ignore file before the first deploy (P4, P3)."
+    ],
+    "production": [
+      "Sign people in through the firm's identity provider and return their id from `identifyUser` (R1). Everything else on this list depends on it.",
+      "Move the decision log to an append-only table on the server, linked to thread ids, with a retention period legal agrees (R3).",
+      "Check on the server that only the next approver on the PB-APR route can approve, and never the preparer (R2)."
+    ]
+  },
+  "intelligence": {
+    "threads": "Wired in `src/lib/intelligence.ts`, off by default for the stage demo.",
+    "analytics": "Its own Analytics page computes the decision log and send-back reasons from the store; Product Analytics comes with the switch.",
+    "trajectories": "Sends each gated decision as a developer event (`src/lib/trajectory-events.ts`), so they arrive once Trajectories are live.",
+    "learning": "Simulated in the app (a keyword classifier and a written rule), so the demo runs the same every time.",
+    "skills": "Its own rules carry a version number; see R10.",
+    "audit": "The decision log, in the browser only.",
+    "yours": "None of these are built yet."
+  },
+  "items": {
+    "P1": {
+      "status": "done",
+      "here": "Three gates, and the copilot can't get past any of them. Approve plan / Not yet (nothing in the plan runs before it). Send for approval / Keep editing (it refuses while an accepted deviation has no reason). Publish to the copilot in Insights. Nothing goes to the vendor at all. Redline edits stay inside the draft, behind the send gate.",
+      "evidence": [
+        "src/copilot/useProposePlan.tsx",
+        "src/copilot/useRequestApproval.tsx",
+        "src/lib/gates.ts",
+        "src/lib/store.ts (runTask, sendForApproval refuse)",
+        "src/lib/demo-script.test.ts"
+      ]
+    },
+    "P2": {
+      "status": "partial",
+      "here": "Safe on a laptop: `npm run dev` and `npm start` listen on 127.0.0.1, and a production build stays on the mock unless `ALLOW_REAL_MODEL=true`. That protects the key, not the data: `src/app/page.tsx` hands every contract, the playbook and the review history to the browser, so `npm run start:public` would show Northstar's contract text to anyone with the URL, even on the mock. The runtime endpoint and `/api/intelligence-status` have no sign-in either. The debug feed (`/api/copilotkit/cpk-debug-events`) stays closed there, because `next start` is a production build and `debug` isn't set on `CopilotRuntime`.",
+      "evidence": [
+        "src/app/page.tsx (LegalApp library, history)",
+        "package.json (dev, start, start:public)",
+        "src/app/api/copilotkit/[[...slug]]/route.ts",
+        "src/lib/server-data.ts (chooseModel)"
+      ],
+      "next": "Check the session in the runtime's `onRequest` hook (401 without one), and send it with `CopilotKitProvider`'s `headers`."
+    },
+    "P3": {
+      "status": "partial",
+      "here": "Keys live in `.env.local` and are read only by the runtime route. `.gitignore` ignores `.env*` except `.env.example`. The browser learns only whether Intelligence is on, never the key, and no frontend tool needs a secret.",
+      "evidence": [
+        ".gitignore (.env*, !.env.example)",
+        ".env.example",
+        "src/lib/intelligence.ts (publicSettings)"
+      ],
+      "next": "Before the first deploy, copy the `.env*` rule into the host's upload ignore file (for example `.railwayignore`): the folder isn't a git repo yet, so `.gitignore` alone may not apply."
+    },
+    "P4": {
+      "status": "partial",
+      "here": "With no key, or `COPILOT_MODEL=mock`, the scripted mock plays the whole demo through the real runtime, AG-UI events, tools and cards, and the chat header says \"mock · scripted demo\". A production build stays on the mock unless `ALLOW_REAL_MODEL=true`. Nothing in the repo shows the same script run on a real model.",
+      "evidence": [
+        "src/lib/mock-model.ts",
+        "src/lib/demo-script.ts",
+        "src/lib/demo-script.test.ts",
+        "src/lib/server-data.ts (chooseModel, modelLabel)"
+      ],
+      "next": "Run the demo script once on the real model before the pilot, and note where it strays."
+    },
+    "P5": {
+      "status": "partial",
+      "here": "`decisionLog()` lists every plan approval, send, approver decision (with their words) and published rule, from the same store the app runs on, and the copilot appears in none of them. It is tested, shown on the Analytics page, and given to the agent with `useAgentContext`. But plan approvals and sends are always logged as Maya Chen, the demo's only user, at the story clock's time: right for a one-person demo, wrong once two people use it. It lives in the browser, so R3 is still open. And a resubmission erases the earlier round: `sendForApproval()` replaces the `submission`, decisions and all, so after a send-back and resubmit the log loses the send-back and Analytics counts the review as approved first time.",
+      "evidence": [
+        "src/lib/analytics.ts (decisionLog)",
+        "src/lib/analytics.test.ts",
+        "src/lib/app-context.ts",
+        "src/lib/store.ts (sendForApproval replaces submission)"
+      ],
+      "next": "Keep every round (append, never replace the submission), log the user `identifyUser` resolves and the real time, and test send back → resubmit."
+    },
+    "P6": {
+      "status": "partial",
+      "here": "Wired and tested, off by default for the stage demo. It turns on only with both `CPK_INTELLIGENCE_ENABLED=true` and the key, reads the Learning Space at startup, and shows a strip when anything fails. `identifyUser` returns Maya Chen for every request: right for a one-person demo, wrong for a pilot with two users.",
+      "evidence": [
+        "src/lib/intelligence.ts (runtimeOptions, checkIntelligence)",
+        "src/lib/intelligence.test.ts",
+        "src/app/api/intelligence-status/route.ts"
+      ],
+      "next": "Turn it on for the pilot once P2 is in place, and resolve the user from the session."
+    },
+    "R1": {
+      "status": "gap",
+      "here": "No sign-in. `identifyUser` returns Maya Chen, and Insights' \"Acting as Rachel Adler\" is a label, not an identity.",
+      "evidence": [
+        "src/lib/intelligence.ts (identifyUser)",
+        "src/lib/company.ts (CURRENT_USER)"
+      ],
+      "next": "Rachel Adler (General Counsel, the playbook's owner) and Northstar's IT decide the identity provider and that every write runs as the signed-in person. Then send the session with the provider's `headers`, verify it in `onRequest`, and return the IdP's id from `identifyUser`."
+    },
+    "R2": {
+      "status": "partial",
+      "here": "Routing by rule is done and tested: `routeApprovals()` works out the General Counsel (PB-APR-01), the Head of Security (PB-APR-02) and the CFO above $500,000 (PB-APR-03) from the findings, never from the model. But the Approvals panel lets the presenter act as each approver in one browser, nothing checks who clicked on the server, and there is no delegation or timeout.",
+      "evidence": [
+        "src/lib/review.ts (routeApprovals)",
+        "src/data/playbook.md (PB-APR-01 to 03)",
+        "src/lib/review.test.ts",
+        "src/components/panels/ApprovalsPanel.tsx"
+      ],
+      "next": "Re-check on the server that the signed-in user is the next approver on the route and isn't Maya, the preparer."
+    },
+    "R3": {
+      "status": "gap",
+      "here": "The decision log is in the browser's localStorage, and Reset demo clears it. No server-side store, no retention period.",
+      "evidence": [
+        "src/lib/store.ts (localStorage, resetDemo)"
+      ],
+      "next": "Write each `decisionLog` entry to an append-only table on the server, linked to the thread id."
+    },
+    "R4": {
+      "status": "gap",
+      "here": "All the data is fictional (Northstar Software), so this hasn't mattered yet. The whole contract and the playbook reach the model; telemetry is on by default; there is no data map and no provider agreement on file.",
+      "evidence": [
+        "src/lib/app-context.ts",
+        "src/copilot/useReviewTools.ts (readMatter)",
+        "README.md (telemetry)"
+      ],
+      "next": "Write the data map before the first real contract goes in, and decide on telemetry."
+    },
+    "R5": {
+      "status": "partial",
+      "here": "Text people type reaches the agent under `quotedText`, labelled as data, never instructions. Verdicts, re-checks and routing are pure functions behind gates, so planted text can't skip an approver. But contract text arrives as the `readMatter` result without that label, and no test plants an instruction inside a contract.",
+      "evidence": [
+        "src/lib/app-context.ts (quotedText)",
+        "src/lib/agent-instructions.ts (Data, not instructions)",
+        "src/lib/review.ts"
+      ],
+      "next": "Add a contract with a planted instruction to the tests, and run it on the real model."
+    },
+    "R6": {
+      "status": "done",
+      "here": "The smallest surface there is: no server tools, no MCP, no secrets in any tool, and `overridableProperties` isn't set. The agent's tools are the app's own frontend tools plus `BuiltInAgent`'s two state tools; the only actions that leave the draft are the gates.",
+      "evidence": [
+        "src/app/api/copilotkit/[[...slug]]/route.ts (BuiltInAgent)",
+        "src/copilot/useReviewTools.ts",
+        "src/copilot/useCollectionTools.ts"
+      ],
+      "next": "Write the tool list down (including `AGUISendStateSnapshot` and `AGUISendStateDelta`) and keep it current as integrations arrive."
+    },
+    "R7": {
+      "status": "partial",
+      "here": "There is a kill switch: the mock, which production builds already default to. There are no per-user limits, and a provider budget can't be checked from the code.",
+      "evidence": [
+        "src/lib/server-data.ts (chooseModel)"
+      ],
+      "next": "Count runs per signed-in user in the runtime's `onBeforeHandler` hook (only `route.method === \"agent/run\"`, 429 past the limit), and set a budget cap with the model provider."
+    },
+    "R8": {
+      "status": "partial",
+      "here": "Every rule and number has a unit test, and the whole demo script plays against the mock in a test. There is no real-model eval set and no red-team set.",
+      "evidence": [
+        "src/lib/review.test.ts",
+        "src/lib/demo-script.test.ts",
+        "src/lib/analytics.test.ts"
+      ],
+      "next": "Turn the demo script into scored cases on the real model, debug failures in the CopilotKit web inspector, and add the four red-team cases."
+    },
+    "R9": {
+      "status": "gap",
+      "here": "No runbook. The mock switch is the off switch, and nobody owns it yet.",
+      "evidence": [
+        "src/lib/server-data.ts (COPILOT_MODEL=mock)"
+      ],
+      "next": "Write the one-page runbook and drill it once."
+    },
+    "R10": {
+      "status": "partial",
+      "here": "Publish to the copilot is a person's click. Each publish bumps the version and logs who and when, and Dismiss is there too. But `publishRule()` replaces the previous version, so there is no history, rollback or unpublish, and \"Acting as Rachel Adler\" isn't checked.",
+      "evidence": [
+        "src/components/panels/InsightsPanel.tsx (publish-gate)",
+        "src/lib/store.ts (publishRule)",
+        "src/lib/analytics.ts (rule_published)"
+      ],
+      "next": "Keep every version, add Roll back, and check the playbook owner's role in the runtime before a publish is accepted."
+    }
+  },
+  "unverified": [
+    "The deployed app: there is no Render or other host config in the repo yet.",
+    "The real-model run of the demo script: the gates are tested against the mock only.",
+    "Trajectory capture end to end: the hosted project returns `TRAJECTORIES_UNAVAILABLE` today.",
+    "A first Automatic Learning run: it needs 15 eligible threads in the Learning Space.",
+    "Any provider budget or data agreement: neither can be checked from the code."
+  ],
+  "disclaimer": "Open Harvey is an open-source demo built with CopilotKit, inspired by the patterns of leading legal AI products. Not affiliated with or endorsed by Harvey."
+}

@@ -1,0 +1,599 @@
+{
+  "function": "Post-production · assistant editing",
+  "app": "Cutline",
+  "date": "2026-11-05",
+  "people": "Ana Ruiz, editor. Theo Grant, producer (approves what goes to the client). Client reviewers outside the company",
+  "summary": "Cutline lives in a panel inside the editing app, beside the timeline. It sees the open sequence and the project's media on the editor's disk, finds selects in transcripts, and drafts edits as markers and rough-cut sequences. Anything that leaves the machine (audio to a transcription service, a cut to a review link, a note to the producer) waits for Ana's or Theo's click.",
+  "storageKey": "example-video-editor",
+  "example": "Worked example. Harbor & Pine Post, its people, clients and projects are fictional. \"The editing app\" stands for a desktop editor that hosts extension panels, such as Premiere Pro: check what your editor's panel SDK allows before you plan on it. Not affiliated with any editing-software or AI-video vendor.",
+  "inputs": [
+    "docs/copilot/user-map.json"
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "name": "Find selects for the interview cut",
+      "who": "Ana Ruiz, editor",
+      "sees": [
+        "S2",
+        "S4",
+        "S5",
+        "S12"
+      ],
+      "touches": [
+        "S1",
+        "S3",
+        "S7",
+        "S8"
+      ]
+    },
+    {
+      "id": "J2",
+      "name": "Assemble a rough cut from the script",
+      "who": "Ana Ruiz",
+      "sees": [
+        "S1",
+        "S2",
+        "S4",
+        "S9",
+        "S12"
+      ],
+      "touches": [
+        "S3"
+      ]
+    },
+    {
+      "id": "J3",
+      "name": "Send a cut for review",
+      "who": "Ana Ruiz; Theo Grant approves anything client-facing",
+      "sees": [
+        "S2",
+        "S6"
+      ],
+      "touches": [
+        "S6",
+        "S10"
+      ]
+    },
+    {
+      "id": "J4",
+      "name": "Turn review notes into timeline markers",
+      "who": "Ana Ruiz",
+      "sees": [
+        "S6"
+      ],
+      "touches": [
+        "S3"
+      ]
+    },
+    {
+      "id": "J5",
+      "name": "Log new footage overnight",
+      "who": "The assistant-editor coworker, scheduled by Theo",
+      "sees": [
+        "S4"
+      ],
+      "touches": [
+        "S5",
+        "S11"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "name": "Cutline's own state: the job, the selects list, the draft edit plan",
+      "ring": 1,
+      "where": "The panel's web view",
+      "how": "`useAgent()` shared state (`agent.state`, `agent.setState`) for the selects list both edit; `useAgentContext` for the job · [docs](https://docs.copilotkit.ai/shared-state)",
+      "actsAs": "Ana Ruiz",
+      "scope": "This project's panel state",
+      "access": "read-write",
+      "freshness": "Live: both sides see each change",
+      "gate": {
+        "kind": "rule",
+        "text": "Panel state only; nothing reaches the timeline except through S3's gate"
+      },
+      "status": "planned",
+      "short": "Selects and plan",
+      "runsOn": "The panel's web view on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S2",
+      "name": "The open sequence: playhead, selection, clips, markers",
+      "ring": 2,
+      "where": "The editing app's open project on Ana's workstation",
+      "how": "A plugin panel inside the editing app: the host's scripting API reads the sequence, `useAgentContext` sends it · [docs](https://docs.copilotkit.ai/shared-state/agent-readonly)",
+      "actsAs": "Ana Ruiz, in her own session of the editing app",
+      "scope": "The active sequence: clip names, in and out timecodes, tracks, markers. No media",
+      "access": "read",
+      "freshness": "Sent with every run; refreshed on selection change",
+      "gate": {
+        "kind": "none",
+        "text": "None: read only"
+      },
+      "status": "planned",
+      "short": "Open sequence",
+      "runsOn": "The editing app's panel on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S3",
+      "name": "Edits to the project: markers, selects bins, a rough-cut sequence",
+      "ring": 2,
+      "where": "The editing app's open project",
+      "how": "`useFrontendTool` handlers call the host's scripting API; `useHumanInTheLoop` shows the edit list before a sequence is built · [docs](https://docs.copilotkit.ai/human-in-the-loop)",
+      "actsAs": "Ana Ruiz",
+      "scope": "New markers and bins; new sequences named `CUTLINE_…`. Never a locked or delivered sequence",
+      "access": "write",
+      "freshness": "At the click",
+      "gate": {
+        "kind": "person",
+        "text": "Markers and bins are additive and undoable in the app, so no card; building or changing a sequence shows the edit list for Ana's click"
+      },
+      "status": "planned",
+      "short": "Timeline edits",
+      "runsOn": "The editing app's panel on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S4",
+      "name": "Project media on local disk",
+      "ring": 2,
+      "where": "The project folder on Ana's workstation or the shared storage it mounts: camera originals, proxies, audio",
+      "how": "Read through the panel's file access from a `useFrontendTool` handler, limited to the project folder. The runtime runs on the post house's server, so a local MCP server can't reach it · [docs](https://docs.copilotkit.ai/frontend-tools)",
+      "actsAs": "Ana's operating-system account, read-only",
+      "scope": "One project folder: file names, durations, timecode, reel names, proxies. Camera originals never leave the machine",
+      "access": "read",
+      "freshness": "Indexed when the project opens; re-indexed when files change",
+      "gate": {
+        "kind": "none",
+        "text": "None: read only"
+      },
+      "status": "planned",
+      "short": "Local media",
+      "runsOn": "The editing app's panel on the editor's workstation",
+      "secretEnv": []
+    },
+    {
+      "id": "S5",
+      "name": "Transcripts and shot logs",
+      "ring": 3,
+      "where": "A speech-to-text service; transcripts stored in the project folder",
+      "how": "A server tool, `defineTool` on `BuiltInAgent`, calls the transcription API with the post house's key; the panel sends proxy audio only after the click · [docs](https://docs.copilotkit.ai/server-tools)",
+      "actsAs": "`svc-transcribe`, the post house's account, on behalf of Ana",
+      "scope": "Proxy audio of this project's clips",
+      "access": "read-write",
+      "freshness": "Once per clip; re-run when a clip changes",
+      "gate": {
+        "kind": "person",
+        "text": "Ana clicks Transcribe on a card naming the clips and the service",
+        "also": [
+          {
+            "kind": "rule",
+            "text": "Only for clients whose contract allows it: Theo sets that flag per client, and the tool checks it"
+          }
+        ]
+      },
+      "status": "planned",
+      "note": "Sending a client's audio to a third party is a write of that data.",
+      "short": "Transcripts",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": [
+        "TRANSCRIBE_API_KEY"
+      ]
+    },
+    {
+      "id": "S6",
+      "name": "Cloud review links and timecoded comments",
+      "ring": 3,
+      "where": "The team's video review service",
+      "how": "Server tools over the review service's API: `createReviewLink` is `defineTool({ ..., interrupt: true })`; `listComments` reads · [docs](https://docs.copilotkit.ai/server-tools)",
+      "actsAs": "Ana Ruiz's account on the review service; links carry her name",
+      "scope": "One project. Links expire in 7 days and need a password, both set in code",
+      "access": "read-write",
+      "freshness": "Comments read when Ana asks, with an as-of time",
+      "gate": {
+        "kind": "person",
+        "text": "Ana clicks Create link on a card showing the cut, version, expiry and audience",
+        "also": [
+          {
+            "kind": "person",
+            "text": "A client-facing link also needs Theo's yes (S10)"
+          }
+        ]
+      },
+      "status": "planned",
+      "short": "Review links",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": [
+        "REVIEW_OAUTH_CLIENT_ID",
+        "REVIEW_OAUTH_CLIENT_SECRET"
+      ]
+    },
+    {
+      "id": "S7",
+      "name": "The model provider",
+      "short": "Model provider",
+      "ring": 3,
+      "phase": "v1",
+      "where": "The post house's model provider, named in `BuiltInAgent`'s `model`",
+      "how": "`BuiltInAgent`'s `model` (`@copilotkit/runtime/v2`) in CopilotKit Runtime: each run sends the sequence context, transcript excerpts and tool results",
+      "actsAs": "The post house's account with the provider (the server's key)",
+      "scope": "Clip names, timecodes and transcript excerpts; never media",
+      "access": "write",
+      "freshness": "Every run",
+      "gate": {
+        "kind": "person",
+        "text": "Theo confirms per client that transcripts and notes may go to the provider",
+        "also": [
+          {
+            "kind": "rule",
+            "text": "The same per-client flag as transcription, checked before each run"
+          }
+        ]
+      },
+      "status": "planned",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": [
+        "OPENAI_API_KEY"
+      ]
+    },
+    {
+      "id": "S8",
+      "name": "Telemetry and logs",
+      "short": "Telemetry",
+      "ring": 3,
+      "phase": "v1",
+      "where": "CopilotKit Runtime's anonymous telemetry and the server's logs",
+      "how": "`COPILOTKIT_TELEMETRY_DISABLED=true` (or `DO_NOT_TRACK=1`), read by `@copilotkit/runtime`, turns the runtime's telemetry off",
+      "actsAs": "The server",
+      "scope": "Ids, counts and errors; no client names, transcripts or file paths in logs",
+      "access": "write",
+      "freshness": "Continuous",
+      "gate": {
+        "kind": "rule",
+        "text": "Off for client work; logs carry project ids only"
+      },
+      "status": "planned",
+      "runsOn": "CopilotKit Runtime on the post house's server",
+      "secretEnv": []
+    },
+    {
+      "id": "S9",
+      "name": "Scripts, shot lists and client notes",
+      "ring": 4,
+      "where": "The project's folder in the team's cloud drive",
+      "how": "The drive's MCP server: `mcpServers: [{ type: \"http\", url, name: \"drive\" }]`, read tools only · [docs](https://docs.copilotkit.ai/mcp-servers)",
+      "actsAs": "Ana Ruiz, with her own drive token through a per-request `mcpClients` provider",
+      "scope": "The project's drive folder",
+      "access": "read",
+      "freshness": "Live per call",
+      "gate": {
+        "kind": "none",
+        "text": "None: read only"
+      },
+      "status": "planned",
+      "short": "Scripts and notes",
+      "runsOn": "CopilotKit Runtime (an `mcpClients` provider built per request)",
+      "secretEnv": [
+        "DRIVE_MCP_URL",
+        "DRIVE_OAUTH_CLIENT_ID",
+        "DRIVE_OAUTH_CLIENT_SECRET"
+      ],
+      "phase": "later"
+    },
+    {
+      "id": "S10",
+      "name": "Team chat: the project channel and the producer",
+      "ring": 5,
+      "where": "Slack or Teams: the project's internal channel, DMs to Theo",
+      "how": "Channels SDK: `createChannel({ identifyUser })`, a \"v3 ready\" card with Approve for client / Hold buttons (`channel.onInteraction`) · [docs](https://docs.copilotkit.ai/reference/channels)",
+      "actsAs": "Theo Grant, as Slack or Teams verifies him, mapped to the staff directory",
+      "scope": "The internal project channel and DMs to the producer. Never the client's shared channel",
+      "access": "read-write",
+      "freshness": "Pushed",
+      "gate": {
+        "kind": "person",
+        "text": "Theo's click approves a cut for the client; Ana can't approve her own"
+      },
+      "status": "planned",
+      "short": "Producer in chat",
+      "runsOn": "A Channels worker for a managed Slack or Teams channel: a long-running Node service with CopilotKit Runtime in Intelligence mode. The Slack and Teams credentials stay in Intelligence",
+      "secretEnv": [
+        "CPK_INTELLIGENCE_API_KEY",
+        "CHANNEL_CODE"
+      ],
+      "note": "v1 here, against the default, because Theo doesn't work in the editing app."
+    },
+    {
+      "id": "S11",
+      "name": "The overnight logging coworker",
+      "ring": 6,
+      "where": "OpenBot on the post house's infrastructure",
+      "how": "An OpenBot tenant package with the media index and transcript tools from an MCP server; `allow` rule per read tool, `ask` rule on `transcribe_clips` · [OpenBot](https://github.com/CopilotKit/openbot)",
+      "actsAs": "The assistant-editor coworker, with only its grants; the MCP server sees OpenBot's bearer token",
+      "scope": "New footage in the ingest folders of active projects",
+      "access": "read-write",
+      "freshness": "Nightly",
+      "gate": {
+        "kind": "person",
+        "text": "OpenBot `ask` rule on transcription: Theo confirms when he schedules the run; every call in Admin → Audit"
+      },
+      "status": "planned",
+      "note": "OpenBot adds MCP servers by https URL on a public hostname only; the media index is on the internal network.",
+      "short": "Logging coworker",
+      "runsOn": "OpenBot on the post house's infrastructure, with the media-index MCP server on an https hostname",
+      "secretEnv": [
+        "MEDIA_INDEX_MCP_TOKEN",
+        "OPENAI_API_KEY",
+        "CPK_INTELLIGENCE_API_KEY"
+      ],
+      "phase": "later"
+    },
+    {
+      "id": "S12",
+      "name": "House style and project memory",
+      "ring": 7,
+      "where": "CopilotKit Intelligence",
+      "how": "`useMemories()` with `project` scope (the client's lower-third style, no jump cuts in interviews) and `user` scope (Ana's naming habits); `useThreads` per project · [docs](https://docs.copilotkit.ai/intelligence/memories)",
+      "actsAs": "Ana Ruiz, resolved on the server by `identifyUser`",
+      "scope": "Project memories for the project team; user memories for Ana. No footage, no contract terms",
+      "access": "read-write",
+      "freshness": "Read on each run; saved when Ana confirms",
+      "gate": {
+        "kind": "person",
+        "text": "Cutline proposes a memory and Ana saves it; Theo can see and remove project memories"
+      },
+      "status": "planned",
+      "note": "Needs Intelligence with the memory entitlement.",
+      "short": "House style memory",
+      "runsOn": "CopilotKit Runtime in Intelligence mode",
+      "secretEnv": [
+        "CPK_INTELLIGENCE_API_KEY"
+      ],
+      "phase": "later"
+    }
+  ],
+  "checklist": [
+    {
+      "id": "every-row",
+      "group": "Every source",
+      "what": "Give every source one row on the closest ring that works.",
+      "why": "An unlisted source becomes an unreviewed credential; a source on a farther ring than it needs adds a secret and a boundary for nothing.",
+      "how": "Ring by ring: `useAgentContext` and `useAgent` (in the app), a `useFrontendTool` handler on the person's machine (on the computer), `defineTool` in `BuiltInAgent` (your server), `mcpServers` (org systems), the Channels SDK (people), an OpenBot coworker package (coworkers), CopilotKit Intelligence (memory). Details in the skill's `references/rings.md`.",
+      "done": "Every job's sees and touches point at a row, and `check-map.mjs` reports no unknown ids."
+    },
+    {
+      "id": "every-identity",
+      "group": "Every source",
+      "what": "Name whose identity each row acts as.",
+      "why": "The agent must never do more than the person it works for, and the audit trail needs a real name.",
+      "how": "The signed-in user via `<CopilotKitProvider headers>` and the runtime's `identifyUser(request)` ([docs](https://docs.copilotkit.ai/auth)); a named service account only where there's no per-user path.",
+      "done": "Each row's Acts as names a person or a named account, and no request trusts a user id sent from the browser.",
+      "about": [
+        "S4",
+        "S5",
+        "S6",
+        "S10"
+      ]
+    },
+    {
+      "id": "every-scope",
+      "group": "Every source",
+      "what": "Cut each row to the least it needs.",
+      "why": "What the agent can't reach can't leak into a reply, a log or a memory.",
+      "how": "One root folder checked in each `useFrontendTool` handler; the open record, not the table; only the tools a job needs, from an `mcpClients` provider or OpenBot rules named per tool.",
+      "done": "Each row's scope names the folder, records, fields or tools, and read-only is the default."
+    },
+    {
+      "id": "every-gate",
+      "group": "Every source",
+      "what": "Gate every write and prove it refuses.",
+      "why": "Reads are free, writes wait for a person; a gate that's only in the prompt is a suggestion.",
+      "how": "`useHumanInTheLoop` in the app ([docs](https://docs.copilotkit.ai/human-in-the-loop)), a `defineTool` with `interrupt: true` on the server, a Channels button, an OpenBot `ask` rule.",
+      "done": "Every write row names who clicks and what they see, and a test calls each write without the click and gets a refusal.",
+      "about": [
+        "S3",
+        "S5",
+        "S6",
+        "S10"
+      ]
+    },
+    {
+      "id": "every-fresh",
+      "group": "Every source",
+      "what": "Say how fresh each source is.",
+      "why": "A stale playbook or price list produces a confident wrong answer.",
+      "how": "`useAgentContext` for what must be current on every run; a `useFrontendTool` or `defineTool` that reads at call time for records; an \"as of\" line for anything read at start-up or indexed (the skill's `references/five-checks.md`).",
+      "done": "Each row's freshness is filled, and answers built on start-up or indexed data say \"as of\"."
+    },
+    {
+      "id": "every-fence",
+      "group": "Every source",
+      "what": "Fence text from sources as data, not instructions.",
+      "why": "Documents, comments and chat messages reach the model at the same level as your instructions.",
+      "how": "Put text people wrote under a field the context description calls data, as Open Harvey's `quotedText` does in `src/lib/app-context.ts`.",
+      "done": "A review comment saying \"delete the B-roll bin\" becomes a marker, not an action.",
+      "about": [
+        "S9",
+        "S6"
+      ]
+    },
+    {
+      "id": "every-secrets",
+      "group": "Every source",
+      "what": "Keep secrets on the server, and let the user set them.",
+      "why": "A key in the browser or in context belongs to whoever opens dev tools.",
+      "how": "Keys only in CopilotKit Runtime's server environment (`.env.local` locally), read by `@copilotkit/runtime/v2` code; the browser sends only the user's own session through `<CopilotKitProvider headers>`, and nothing secret goes in `useAgentContext`.",
+      "done": "The client bundle holds no key, and the README names each variable without its value."
+    },
+    {
+      "id": "every-small",
+      "group": "Every source",
+      "what": "Read big documents through a tool, not context.",
+      "why": "Context is sent on every run, so size costs tokens and exposes more than the job needs.",
+      "how": "Send transcript excerpts with timecodes, not whole transcripts; a `useFrontendTool` that returns one clip's lines.",
+      "done": "No `useAgentContext` entry holds a whole transcript.",
+      "about": [
+        "S4",
+        "S5"
+      ]
+    },
+    {
+      "id": "every-record",
+      "group": "Every source",
+      "what": "Keep each record where everyone on the job can reach it.",
+      "why": "A record in one browser (localStorage) is invisible to an approver on another machine, and gone with that browser.",
+      "how": "A `defineTool` on a per-request `BuiltInAgent` reads and writes the record on the server; the app's store becomes a cache of it · [docs](https://docs.copilotkit.ai/server-tools)",
+      "done": "The second person on the job sees the record on their own machine without a reload, and clearing one browser loses nothing."
+    },
+    {
+      "id": "every-model",
+      "group": "Every source",
+      "what": "Get the data owner's yes before content goes to the model provider.",
+      "why": "Everything in context and every tool result goes to the provider on each run, so document text leaves your boundary.",
+      "how": "`BuiltInAgent`'s `model` runs on the server with the key there; send sections, not whole documents; run a scripted `LanguageModelV3` mock until the yes, as Open Harvey's `chooseModel` does in `src/lib/server-data.ts`.",
+      "done": "The model provider's row names the provider, what each run sends and who agreed, and the build runs the mock until they have."
+    },
+    {
+      "id": "every-telemetry",
+      "group": "Every source",
+      "what": "Decide telemetry and logs on purpose.",
+      "why": "CopilotKit Runtime's anonymous telemetry is on unless you turn it off, and logs keep whatever the server prints.",
+      "how": "`COPILOTKIT_TELEMETRY_DISABLED=true` (or `DO_NOT_TRACK=1`) in the server's environment turns the runtime's telemetry off; log ids and counts, never document text; CopilotKit Intelligence stays off until you switch it on.",
+      "done": "The telemetry row says on or off and why, and a search of a day's logs finds no document text."
+    },
+    {
+      "id": "every-inspect",
+      "group": "Every source",
+      "what": "Watch what each run actually carries.",
+      "why": "The map is a plan; the AG-UI stream shows the context, tools and state the agent really got.",
+      "how": "The CopilotKit web inspector (`@copilotkit/web-inspector`), on with `enableInspector` on `<CopilotKitProvider>`: on by default on localhost in development; Open Harvey sets it in `src/components/LegalApp.tsx`.",
+      "done": "The inspector shows every ring 1 row's context entry on a run, and nothing the map keeps out."
+    },
+    {
+      "id": "app-selects",
+      "group": "In the app",
+      "what": "Share the selects list as agent state.",
+      "why": "Ana and Cutline both add and remove selects; one source of truth avoids lost edits.",
+      "how": "`useAgent()` with `agent.state` and `agent.setState` · [docs](https://docs.copilotkit.ai/shared-state)",
+      "done": "Ana removes a select and Cutline's next answer no longer lists it.",
+      "about": [
+        "S1"
+      ]
+    },
+    {
+      "id": "computer-panel",
+      "group": "On the computer",
+      "what": "Prove the panel can read the sequence and reach the runtime.",
+      "why": "Everything on rings 1 and 2 depends on the host's panel SDK.",
+      "how": "A spike panel that sends the playhead and selection with `useAgentContext` and gets an answer from the runtime.",
+      "done": "Moving the playhead changes Cutline's answer to \"what's under the playhead?\".",
+      "about": [
+        "S2"
+      ]
+    },
+    {
+      "id": "computer-root",
+      "group": "On the computer",
+      "what": "Limit media access to the project folder.",
+      "why": "Editors' disks hold every client's footage.",
+      "how": "The panel's file access, from a `useFrontendTool` handler that checks every path against the project root.",
+      "done": "A test asks for a file in another client's folder and is refused.",
+      "about": [
+        "S4"
+      ]
+    },
+    {
+      "id": "computer-edits",
+      "group": "On the computer",
+      "what": "Gate sequence edits; let markers ride on undo.",
+      "why": "A rebuilt sequence can wipe an editor's afternoon; a marker can't.",
+      "how": "`useHumanInTheLoop` card with the edit list before `buildSequence` runs · [docs](https://docs.copilotkit.ai/human-in-the-loop)",
+      "done": "`buildSequence` without the click is refused, and a locked sequence is never touched.",
+      "about": [
+        "S3"
+      ]
+    },
+    {
+      "id": "server-transcribe",
+      "group": "Your server",
+      "what": "Allow transcription per client, then per click.",
+      "why": "Sending a client's audio to a third party may break their contract.",
+      "how": "`defineTool` on `BuiltInAgent`; the tool checks the client's flag before it calls the service · [docs](https://docs.copilotkit.ai/server-tools)",
+      "done": "A clip from a client without the flag is refused, even after Ana's click.",
+      "about": [
+        "S5"
+      ]
+    },
+    {
+      "id": "server-review",
+      "group": "Your server",
+      "what": "Create review links with an interrupt tool, as Ana.",
+      "why": "A link is a copy of the cut outside the company.",
+      "how": "`defineTool({ name: \"createReviewLink\", interrupt: true })` on a per-request agent with Ana's token · [docs](https://docs.copilotkit.ai/server-tools)",
+      "done": "Every link has an expiry, a password and Ana's name, and none exists without her click.",
+      "about": [
+        "S6"
+      ]
+    },
+    {
+      "id": "mcp-drive",
+      "group": "Org systems",
+      "what": "Connect the drive's MCP server with read tools and Ana's token.",
+      "why": "Scripts and notes are the client's; the agent should see only what Ana can.",
+      "how": "`mcpClients` built per request with Ana's token · [docs](https://docs.copilotkit.ai/mcp-servers)",
+      "done": "The agent can open the project folder and nothing outside it.",
+      "about": [
+        "S9"
+      ]
+    },
+    {
+      "id": "channels-producer",
+      "group": "People",
+      "what": "Send Theo an approve-for-client card and record his click.",
+      "why": "Client deliveries are the producer's call, and he lives in chat.",
+      "how": "`createChannel({ identifyUser })`, buttons with `channel.onInteraction` · [docs](https://docs.copilotkit.ai/slack/identity-and-memory)",
+      "done": "A real click by Theo marks v3 approved; Ana's click on her own cut is refused.",
+      "about": [
+        "S10"
+      ]
+    },
+    {
+      "id": "openbot-grants",
+      "group": "Coworkers",
+      "what": "Grant the logging coworker each tool by name.",
+      "why": "It runs with nobody watching; a wildcard allow would let it upload anything.",
+      "how": "An `allow` rule per read tool and an `ask` rule on `transcribe_clips`, as in `starters/openbot-headcount/examples/northstar/hr-system/connect.ts`.",
+      "done": "Admin → Audit shows a night's reads with no prompt and transcription asking first.",
+      "about": [
+        "S11"
+      ]
+    },
+    {
+      "id": "memory-policy",
+      "group": "Memory",
+      "what": "Decide what Cutline may remember, at which scope.",
+      "why": "A memory is a write that every later run reads.",
+      "how": "`useMemories()` with `project` and `user` scope; the runtime's `memory: { access }` grant · [docs](https://docs.copilotkit.ai/intelligence/memories)",
+      "done": "Ana saves \"lower thirds in the client's font\" and it shows for the next editor on the project, not on other clients.",
+      "about": [
+        "S12"
+      ]
+    }
+  ],
+  "open": [
+    "Transcripts and notes go to the model provider on every run (S7). Theo confirms per client before a real model sees them; the spec decides this, from this row.",
+    "Which editing app and panel SDK? Check that a panel can call the timeline API, reach the runtime over the network and read the project folder (S2 to S4).",
+    "Where the runtime runs. Assumed: the post house's server, so local media comes through the panel, not a local MCP server.",
+    "Which clients allow third-party transcription (S5)? Theo to confirm per client. Assumed: off unless allowed.",
+    "Does the review service issue per-user API tokens (S6)? Assumed yes.",
+    "OpenBot needs an https MCP server on a public hostname (S11), and the media index is internal. Tunnel it, or leave the coworker out of v1.",
+    "Memory needs Intelligence with the memory entitlement (S12).",
+    "Every env var name here is a suggestion except `CPK_INTELLIGENCE_API_KEY`, `OPENAI_API_KEY` and the managed channel's `CHANNEL_CODE`; keep or rename them before `/deploy`."
+  ],
+  "next": "Next: `/functional-copilot` writes the spec from this map (`agent-context.json`) and builds the panel. Later, `/deploy` decides where the runtime runs, hosts the transcription and review-link tools and the Channels worker for S10, and places the OpenBot coworker near the media, and `/secure-governance` sets the per-client data rules.",
+  "headline": "Cutline reads the timeline and the media on the editor's machine; anything that leaves it waits for Ana's or Theo's click."
+}

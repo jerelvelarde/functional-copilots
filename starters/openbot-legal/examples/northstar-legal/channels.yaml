@@ -1,0 +1,17 @@
+# OpenBot channels are conversations inside OpenBot, not Slack or Teams channels.
+#
+# Slack and Microsoft Teams are not configured in the tenant package at all. They arrive through
+# OpenTag (CopilotKit's open-source Slack/Teams front), which calls OpenBot as an AG-UI agent; the
+# settings are environment variables (OPENTAG_SHARED_SECRET, OPENTAG_URL) and each person links their
+# own Slack or Teams identity to the coworker from the Bot's page, under Reaching you. This starter
+# presents in OpenBot's web app; see ../../openbot-headcount/README.md for the Slack path.
+#
+# `allowed_groups` is validated and stored and decides nothing today (docs/configuration.md).
+channels:
+  - id: contract-review
+    name: Contract Review
+    description: >-
+      Review a vendor contract against Northstar's playbook, see where its approvals stand, and
+      resubmit it once the approver's ask is met.
+    permitted_agents: [contract-copilot]
+    allowed_groups: [all]

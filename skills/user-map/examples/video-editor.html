@@ -1,0 +1,1418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>User map · Video editor</title>
+<!--
+  /user-map template. Do not hand-edit the markup below: fill the JSON in the
+  <script id="user-map-data"> block (schema: skills/user-map/references/map-schema.md)
+  and build it with:  node skills/user-map/scripts/build-map.mjs docs/copilot/user-map.json
+  One self-contained file: inline CSS and JS, no network calls, no external fonts.
+-->
+<style>
+:root {
+  --paper: #f6f5f1; --surface: #ffffff; --stone: #edebe6; --stone-deep: #e1ded6;
+  --ink: #141310; --ink-soft: #2d2b27; --muted: #65615a; --hairline: #e2dfd8; --rule: #cbc7be;
+  --on-ink: #ffffff;
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --r: 8px; --r-sm: 5px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121110; --surface: #1b1a18; --stone: #252421; --stone-deep: #2f2d29;
+    --ink: #f0efe9; --ink-soft: #d9d7cf; --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c;
+    --on-ink: #121110;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121110; --surface: #1b1a18; --stone: #252421; --stone-deep: #2f2d29;
+  --ink: #f0efe9; --ink-soft: #d9d7cf; --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c;
+  --on-ink: #121110;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 14.5px/1.55 var(--sans); font-variant-numeric: tabular-nums;
+}
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px 64px; }
+@media (min-width: 720px) { .wrap { padding: 0 32px 80px; } }
+
+/* top bar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+.bar .tag { font: 600 12px/1 var(--mono); letter-spacing: .02em; }
+.bar .tools { display: flex; gap: 6px; }
+.btn { font: 500 12.5px/1 var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 7px 10px; cursor: pointer; }
+.btn:hover { background: var(--stone); }
+.btn:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* where this sits: the functional-copilot root, then the numbered steps */
+.sroot { font: 600 11.5px/1 var(--mono); letter-spacing: .05em; color: var(--muted); }
+ol.suite5 { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; font-size: 12.5px; }
+ol.suite5 li { display: flex; align-items: center; gap: 4px; }
+ol.suite5 li + li::before { content: "→"; color: var(--muted); padding: 0 2px; }
+.st { border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; color: var(--ink-soft); white-space: nowrap; }
+.st b { font: 600 11.5px/1 var(--mono); margin-right: 4px; }
+.st.now { background: var(--ink); color: var(--on-ink); border-color: var(--ink); font-weight: 600; }
+.st.learn { border-style: dashed; color: var(--muted); }
+
+/* the calm top: one headline, then role → software → copilot */
+header.top { padding: 34px 0 30px; display: flex; flex-direction: column; justify-content: center; }
+@media (min-width: 760px) and (min-height: 620px) { header.top { min-height: calc(100vh - 58px); padding: 32px 0 36px; } }
+header.top h1 { font: 500 clamp(32px, 5.4vw, 58px)/1.08 var(--serif); letter-spacing: -.015em; margin: clamp(28px, 7vh, 64px) 0 clamp(24px, 6vh, 52px); max-width: 20ch; }
+ol.rpath { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+@media (min-width: 760px) { ol.rpath { flex-direction: row; gap: 0; } }
+ol.rpath .pc { flex: 1 1 0; min-width: 0; }
+ol.rpath .arr { align-self: center; color: var(--muted); font-size: 20px; line-height: 1; padding: 2px 0; }
+@media (min-width: 760px) { ol.rpath .arr { padding: 0 12px; } }
+@media (max-width: 759px) { ol.rpath .arr { transform: rotate(90deg); } }
+.pc a { display: flex; flex-direction: column; gap: 7px; height: 100%; text-decoration: none; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 18px 20px 20px; }
+.pc a:hover { border-color: var(--rule); }
+.pc .pk { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pc .pt { font: 500 clamp(19px, 2.2vw, 24px)/1.2 var(--serif); }
+.pc .ps { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.pc.cp a { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.pc.cp .pk, .pc.cp .ps { color: var(--on-ink); opacity: .8; }
+.scrollhint { margin: 26px 0 0; font-size: 13px; }
+.scrollhint a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--rule); }
+#glance { border-top: 1px solid var(--hairline); padding-top: 28px; }
+#glance h2 { font: 500 20px/1.25 var(--serif); margin: 0 0 8px; }
+.oneline { font: 400 clamp(16px, 2.2vw, 19px)/1.45 var(--serif); color: var(--ink-soft); max-width: 62ch; margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r); overflow: hidden; margin: 20px 0 0; }
+.meta div { background: var(--surface); padding: 10px 12px; flex: 1 1 150px; min-width: 0; }
+.meta div.wide { flex: 2 1 300px; }
+.meta dt { font-size: 11.5px; color: var(--muted); margin: 0 0 2px; }
+.meta dd { margin: 0; font-weight: 600; font-size: 13.5px; overflow-wrap: anywhere; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 14px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* map path (role → … → placement) */
+nav.path { margin: 22px 0 6px; }
+nav.path ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 0; }
+nav.path li { display: flex; align-items: center; font-size: 13px; }
+nav.path li + li::before { content: "→"; color: var(--muted); padding: 0 8px; }
+nav.path a { text-decoration: none; border-bottom: 1px solid var(--rule); padding-bottom: 1px; }
+nav.path a:hover { border-color: var(--ink); }
+nav.path .n { font: 600 11px/1 var(--mono); color: var(--muted); margin-right: 5px; }
+
+/* sections */
+section.s { padding: 34px 0 6px; border-top: 1px solid var(--hairline); margin-top: 26px; }
+.shead { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: baseline; margin-bottom: 16px; }
+.shead .num { font: 600 12px/1 var(--mono); color: var(--muted); }
+.shead h2 { font: 500 clamp(21px, 3vw, 26px)/1.2 var(--serif); margin: 0; letter-spacing: -.005em; }
+.shead p { grid-column: 2; margin: 0; color: var(--muted); font-size: 13.5px; }
+h3 { font: 600 14px/1.3 var(--sans); margin: 0 0 6px; }
+p { margin: 0 0 10px; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+.card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 14px 16px; }
+.card.assumed { border-style: dashed; border-color: var(--rule); }
+.grid2 { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+ul.plain { list-style: none; padding: 0; margin: 0; }
+ul.plain > li { padding: 8px 0; border-top: 1px solid var(--hairline); }
+ul.plain > li:first-child { border-top: 0; padding-top: 0; }
+
+/* evidence chips: status by fill, outline and weight */
+.ev { display: inline-flex; align-items: center; gap: 3px; font: 500 11px/1 var(--sans); border-radius: 999px; padding: 3px 7px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; text-decoration: none; }
+.ev.sourced { border: 1px solid var(--ink); color: var(--ink); }
+.ev.assumed { border: 1px dashed var(--muted); color: var(--muted); font-style: italic; }
+.ev.confirmed { background: var(--ink); color: var(--on-ink); border: 1px solid var(--ink); font-weight: 700; }
+.legend .ev { margin-left: 0; }
+
+/* role */
+.day { display: grid; gap: 8px; }
+.dayrow { display: grid; grid-template-columns: minmax(0, 1fr) 90px 38px; gap: 10px; align-items: center; font-size: 13.5px; }
+.track { height: 8px; background: var(--stone); border-radius: 999px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+.track.assumed i { background: repeating-linear-gradient(90deg, var(--ink) 0 4px, transparent 4px 7px); }
+@media (min-width: 560px) { .dayrow { grid-template-columns: minmax(0, 1fr) 160px 38px; } }
+.pct { text-align: right; font: 500 12.5px/1 var(--mono); }
+
+/* wireframe */
+.wire { display: grid; gap: 6px; padding: 6px; border: 1.5px solid var(--ink); border-radius: var(--r); background: var(--surface); min-height: 240px; }
+@media (min-width: 760px) { .wire { min-height: 300px; } }
+.wire .rg { background: var(--stone); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 8px; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow: hidden; position: relative; }
+.wire .rg b { font: 600 12px/1.25 var(--sans); overflow-wrap: break-word; hyphens: manual; }
+.wire .rg .hd { font-size: 11.5px; color: var(--muted); line-height: 1.35; overflow-wrap: break-word; hyphens: manual; }
+@media (max-width: 560px) { .wire .rg .hd { display: none; } .wire { min-height: 200px; } .wire .rg { padding: 6px; } .wire .rg b { font-size: 11px; } }
+.wire .rg.cp { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.wire .rg.cp .hd { color: var(--on-ink); opacity: .82; }
+.wire .rg.also { border: 2px solid var(--ink); background: var(--surface); }
+.wire .rg .badge { align-self: flex-start; white-space: nowrap; font: 700 10px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 6px; margin-bottom: 2px; }
+.wire .rg.cp .badge { background: var(--on-ink); color: var(--ink); }
+.wire .rg.also .badge { border: 1px solid var(--ink); }
+.wire .rg.new { background: transparent; border: 1px dashed var(--rule); }
+.wire .rg.new .badge { border: 1px dashed var(--muted); color: var(--muted); font-weight: 600; }
+.newtag { font: 600 10.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .04em; border: 1px dashed var(--muted); border-radius: 999px; padding: 3px 6px; margin-left: 6px; color: var(--muted); vertical-align: 1px; }
+.wirecap { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+
+table.t { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); overflow: hidden; }
+table.t th { text-align: left; font: 600 12px/1.3 var(--sans); color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
+table.t td { padding: 10px 12px; border-top: 1px solid var(--hairline); vertical-align: top; }
+table.t tr.assumed td { border-top-style: dashed; }
+@media (max-width: 640px) {
+  table.t thead { display: none; }
+  table.t, table.t tbody, table.t tr, table.t td { display: block; width: 100%; }
+  table.t tr { border-top: 1px solid var(--hairline); padding: 6px 0; }
+  table.t td { border: 0; padding: 4px 12px; }
+  table.t td[data-l]::before { content: attr(data-l); display: block; font-size: 11.5px; color: var(--muted); }
+}
+
+/* jobs */
+.job { display: flex; flex-direction: column; gap: 8px; }
+.job .jid { font: 600 11.5px/1 var(--mono); color: var(--muted); }
+.job .stmt { font: 400 15.5px/1.45 var(--serif); }
+.job .stmt em { font-style: normal; font-weight: 600; }
+.job dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12.5px; }
+.job dt { color: var(--muted); }
+.job dd { margin: 0; }
+.job.first { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.job.first .jid, .job.first dt { color: var(--on-ink); opacity: .75; }
+.job.first .ev.sourced { border-color: var(--on-ink); color: var(--on-ink); }
+.job.first .ev.assumed { border-color: var(--on-ink); color: var(--on-ink); opacity: .8; }
+.job.first .ev.confirmed { background: var(--on-ink); color: var(--ink); }
+.starthere { align-self: flex-start; font: 700 10.5px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; background: var(--on-ink); color: var(--ink); border-radius: 999px; padding: 4px 7px; }
+
+/* flows */
+.flow { margin: 0 0 22px; }
+.flowhead { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 0 0 10px; }
+.flowhead h3 { font: 500 18px/1.3 var(--serif); margin: 0; }
+.flowhead .io { font-size: 13px; color: var(--muted); }
+ol.steps { list-style: none; margin: 0; padding: 0; border: 1px solid var(--hairline); border-radius: var(--r); background: var(--surface); counter-reset: st; }
+ol.steps > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 10px; padding: 11px 14px; border-top: 1px solid var(--hairline); counter-increment: st; }
+ol.steps > li:first-child { border-top: 0; }
+ol.steps > li.assumed { border-top-style: dashed; }
+ol.steps > li::before { content: counter(st); font: 600 12px/22px var(--mono); color: var(--muted); }
+.stepbody { display: grid; gap: 4px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .stepbody { grid-template-columns: minmax(0, 1fr) 190px 110px; align-items: start; gap: 4px 16px; } }
+.who { font-weight: 600; }
+.where { font-size: 12.5px; color: var(--muted); }
+.timecol { font-size: 12.5px; }
+.timecol .track { margin-top: 5px; height: 6px; }
+.kind { justify-self: start; font: 600 11px/1 var(--sans); border-radius: 999px; padding: 4px 8px; white-space: nowrap; }
+@media (min-width: 760px) { .kind { justify-self: end; } }
+.kind.approval { background: var(--ink); color: var(--on-ink); }
+.kind.handoff { border: 1.5px solid var(--ink); }
+.kind.wait { border: 1px dashed var(--muted); color: var(--muted); }
+.kind.work { color: var(--muted); padding-left: 0; padding-right: 0; }
+.timegoes { margin: 10px 0 0; padding: 10px 14px; border-left: 3px solid var(--ink); background: var(--surface); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13.5px; }
+
+/* placement */
+.prow { display: grid; grid-template-columns: 1fr; gap: 8px 22px; padding: 16px 0; border-top: 1px solid var(--hairline); }
+@media (min-width: 760px) { .prow { grid-template-columns: 240px minmax(0, 1fr); } }
+.prow h3 { font: 500 17px/1.25 var(--serif); margin: 0 0 3px; }
+.prow .q { font-size: 12.5px; color: var(--muted); margin: 0 0 7px; }
+.piece { display: inline-block; font: 600 12px/1.35 var(--mono); border: 1px solid var(--ink); border-radius: var(--r-sm); padding: 3px 7px; text-decoration: none; }
+.piece:hover { background: var(--stone); }
+.pitems { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pitems li { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 9px 12px; }
+.pitems li.assumed { border-style: dashed; border-color: var(--rule); }
+.pitems .tname { font: 600 12.5px/1.3 var(--mono); display: block; margin-bottom: 2px; }
+.pitems .det { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.notthis { margin: 10px 0 0; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--r-sm); font-size: 13.5px; }
+.notthis b { font-weight: 700; }
+
+/* checklist */
+.progress { font: 600 12.5px/1 var(--mono); color: var(--muted); }
+ol.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+ol.check > li { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 12px 14px; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 2px 10px; }
+ol.check > li.done { background: var(--stone); }
+ol.check > li.done .what { text-decoration: line-through; text-decoration-thickness: 1px; }
+.check input[type="checkbox"] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); cursor: pointer; }
+.what { font-weight: 600; font-size: 14.5px; cursor: pointer; }
+.cid { font: 600 11.5px/1 var(--mono); color: var(--muted); margin-right: 6px; }
+.ck { display: grid; grid-template-columns: 1fr; gap: 3px 12px; margin-top: 6px; font-size: 13.5px; }
+@media (min-width: 640px) { .ck { grid-template-columns: 82px minmax(0, 1fr); } }
+.ck dt { font-size: 12px; color: var(--muted); padding-top: 1px; }
+.ck dd { margin: 0 0 4px; overflow-wrap: anywhere; }
+
+/* validate */
+.who3 { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); margin: 0 0 14px; padding: 0; list-style: none; }
+.who3 li { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.who3 li.done { background: var(--stone); }
+ol.asks { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; }
+
+/* sources */
+ol.src { margin: 0; padding-left: 22px; display: grid; gap: 8px; font-size: 13.5px; }
+ol.src li:target { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 2px; }
+.url { font: 400 12px/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+
+footer.end { margin-top: 36px; padding: 18px; border: 1.5px solid var(--ink); border-radius: var(--r); background: var(--surface); }
+footer.end h2 { font: 500 20px/1.25 var(--serif); margin: 0 0 6px; }
+.fine { margin-top: 16px; font-size: 12px; color: var(--muted); }
+.err { margin: 24px 0; padding: 14px; border: 2px solid var(--ink); border-radius: var(--r); background: var(--surface); }
+
+@media print {
+  /* (0,2,0) selectors placed last, so print wins over the dark-mode tokens too */
+  :root:not([data-print]), :root[data-theme="dark"], :root[data-theme="light"] { --paper: #fff; --surface: #fff; --stone: #f1f0ec; --ink: #000; --ink-soft: #111; --muted: #444; --hairline: #ccc; --rule: #999; --on-ink: #fff; }
+  body { font-size: 11pt; background: #fff; }
+  .bar .tools, nav.path, .scrollhint { display: none; }
+  header.top { min-height: 0; }
+  .pc.cp a, .st.now { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wrap { max-width: none; padding: 0; }
+  section.s { break-inside: auto; }
+  .card, .job, ol.steps > li, ol.check > li, .prow, .pitems li, .who3 li, .wire, table.t tr { break-inside: avoid; }
+  .shead { break-after: avoid; }
+  .job.first, .wire .rg.cp, .step.now, .ev.confirmed, .kind.approval { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a.piece::after, ol.src a::after { content: ""; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="tag">/user-map</span>
+    <span class="tools">
+      <button class="btn" type="button" id="theme" aria-label="Theme: auto, light or dark">Theme: Auto</button>
+      <button class="btn" type="button" id="print">Print</button>
+    </span>
+  </div>
+  <noscript><p class="err">This page draws the map with JavaScript. The same map is in <code>user-map.md</code> and <code>user-map.json</code> next to this file.</p></noscript>
+  <main id="map"></main>
+</div>
+
+<script type="application/json" id="user-map-data">
+{
+  "schema": "user-map/1",
+  "meta": {
+    "role": "Video editor",
+    "function": "Post-production",
+    "app": "Premiere Pro",
+    "route": "plugin",
+    "shape": "workspace assist",
+    "building": "A panel inside the editing app, beside the timeline: a UXP plugin panel in Premiere Pro running the CopilotKit React app, with the runtime on your server. CopilotKit inside that panel is Assumed until checklist item C1 proves it",
+    "date": "2026-11-05",
+    "preparedFor": "Jerel's example for the workshop",
+    "research": "web",
+    "headline": "An editing copilot that lives in the timeline",
+    "path": {
+      "role": "Turns hours of footage into a cut that a producer approves",
+      "software": "Timeline editor: media bins, source and program monitors, timeline, inspector",
+      "copilot": "A panel beside the timeline; its rough cut lands as a new sequence"
+    },
+    "oneLine": "An editing copilot that lives in a panel inside the editing app, beside the timeline. It reads the open sequence, the playhead and the selected clips, finds takes and builds selects, drafts a rough cut as a new sequence, and waits for the editor before anything changes their own sequence or goes out for review."
+  },
+  "role": {
+    "summary": "An editor turns hours of footage into a cut that a producer or client approves. On a team, an assistant editor ingests and organises the media first; the editor builds the story from rough cut to fine cut; review notes come back pinned to timecodes; after picture lock, color and sound take over.",
+    "measuredOn": [
+      {
+        "text": "A first cut to the producer by the deadline",
+        "ev": "assumed"
+      },
+      {
+        "text": "Review rounds before approval (vague notes add rounds)",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "Deliverables on spec and on time",
+        "ev": "assumed"
+      }
+    ],
+    "day": [
+      {
+        "label": "Organising and logging footage",
+        "share": 20,
+        "ev": "assumed"
+      },
+      {
+        "label": "Finding the right takes",
+        "share": 25,
+        "ev": "assumed"
+      },
+      {
+        "label": "Building and refining the cut",
+        "share": 35,
+        "ev": "assumed"
+      },
+      {
+        "label": "Working through review notes",
+        "share": 15,
+        "ev": "assumed"
+      },
+      {
+        "label": "Exports and deliverables",
+        "share": 5,
+        "ev": "assumed"
+      }
+    ],
+    "people": [
+      {
+        "name": "Assistant editor",
+        "relation": "ingests, syncs and organises the media into bins",
+        "ev": "assumed"
+      },
+      {
+        "name": "Producer or director",
+        "relation": "reviews each cut and leaves notes at timecodes; approves the cut",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Colorist and sound mixer",
+        "relation": "take the locked cut; everything they do depends on picture lock",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "Client",
+        "relation": "gives final approval before release",
+        "ev": "assumed"
+      }
+    ]
+  },
+  "software": {
+    "primary": {
+      "name": "Adobe Premiere Pro",
+      "why": "Where the cut is made: media organised in a project panel, a clip previewed in a source monitor, the sequence built on the timeline and played back in a program monitor.",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    "around": [
+      {
+        "name": "Frame.io",
+        "why": "Review: the cut goes up for comment, and reviewers' comments come back into the timeline as markers at the matching timecode.",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Shared storage and proxies",
+        "why": "Footage is backed up and turned into lighter proxy files before editing starts.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "AI editing workspaces, such as Kino.ai",
+        "why": "A newer category: an editing product where people and AI agents work on the same footage. It shows editors already accept AI inside the edit.",
+        "ev": "sourced",
+        "src": [
+          4
+        ]
+      }
+    ],
+    "pattern": {
+      "name": "Timeline editor",
+      "summary": "Everything sits around one sequence and is anchored to time. Media bins hold the footage; a source monitor previews one clip so the editor can mark the moment they want; the timeline holds the sequence as clips on video and audio tracks; a program monitor plays the sequence wherever the playhead sits. An inspector shows the settings of whatever is selected.",
+      "object": "The sequence: clips on tracks over time, with markers",
+      "selection": "Clips on the timeline, an in-to-out range, or a clip in a bin",
+      "open": "One sequence on the timeline, one clip in the source monitor, the playhead's frame in the program monitor",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    "layout": {
+      "columns": "1fr 1.3fr 1.3fr 1fr",
+      "rows": "1fr 1fr",
+      "areas": [
+        "bins source program inspector",
+        "bins timeline timeline copilot"
+      ]
+    },
+    "regions": [
+      {
+        "id": "bins",
+        "name": "Media bins",
+        "holds": "Imported footage, audio and graphics, in folders",
+        "does": "Organise, search and open clips",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "source",
+        "name": "Source monitor",
+        "holds": "One clip, before it goes into the cut",
+        "does": "Scrub, mark in and out, pick the take",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "program",
+        "name": "Program monitor",
+        "holds": "The sequence, playing from the playhead",
+        "does": "Watch the cut, judge the pacing",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "timeline",
+        "name": "Timeline",
+        "holds": "Clips on video and audio tracks, with markers",
+        "does": "Arrange, trim, cut, add titles and transitions",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "id": "inspector",
+        "name": "Inspector",
+        "holds": "Settings of the selected clip: effects, motion, audio level",
+        "does": "Adjust what's selected",
+        "ev": "assumed"
+      },
+      {
+        "id": "copilot",
+        "name": "Copilot panel",
+        "holds": "A plugin panel: the ask, the proposals and the gates",
+        "does": "Ask, review a proposal, apply or keep it",
+        "new": true,
+        "ev": "sourced",
+        "src": [
+          5,
+          6
+        ]
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "J1",
+      "when": "footage lands for a new project",
+      "want": "have every clip transcribed, logged and tagged, with the best takes pulled into a selects bin",
+      "so": "start on the story instead of scrubbing hours of footage",
+      "often": "Every project",
+      "pain": "Logging is slow, and poor organisation causes problems that grow later",
+      "first": true,
+      "ev": "sourced",
+      "src": [
+        3,
+        4
+      ]
+    },
+    {
+      "id": "J2",
+      "when": "I start the assembly",
+      "want": "start from a stringout built from the script or the best interview answers",
+      "so": "react to a cut instead of a blank timeline",
+      "often": "Every project",
+      "pain": "The first pass is mostly mechanical",
+      "ev": "assumed"
+    },
+    {
+      "id": "J3",
+      "when": "review notes come back",
+      "want": "turn each note into a marker and a proposed change at its timecode",
+      "so": "work through a round without missing a note",
+      "often": "Every review round",
+      "pain": "Vague notes add rounds",
+      "ev": "sourced",
+      "src": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "J4",
+      "when": "a producer asks whether we have a shot of something",
+      "want": "search the footage by what's said and shown",
+      "so": "answer in seconds",
+      "often": "Daily",
+      "pain": "Scrubbing through bins from memory",
+      "ev": "assumed"
+    },
+    {
+      "id": "J5",
+      "when": "I hand off to color and sound",
+      "want": "prepare, label and export the locked sequence to their spec",
+      "so": "hand off without questions coming back",
+      "often": "Every project",
+      "pain": "Late picture changes force rework downstream",
+      "ev": "sourced",
+      "src": [
+        3
+      ]
+    },
+    {
+      "id": "J6",
+      "when": "the cut is approved",
+      "want": "have captions, versions and deliverables prepared to spec",
+      "so": "deliver without a night of exports",
+      "often": "Every project",
+      "pain": "Exporting versions one by one",
+      "ev": "assumed"
+    }
+  ],
+  "flows": [
+    {
+      "id": "F1",
+      "name": "Footage to an approved cut",
+      "trigger": "a shoot's footage arrives on a drive",
+      "outcome": "a cut the producer has approved",
+      "steps": [
+        {
+          "who": "Assistant editor",
+          "region": "bins",
+          "what": "Ingests the media, backs it up, makes proxies and syncs sound.",
+          "time": "Half a day",
+          "weight": 3,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Assistant editor",
+          "region": "bins",
+          "what": "Logs each clip (names, notes, transcripts, tags) and sorts it into bins, then hands the project over.",
+          "time": "Hours per shoot day",
+          "weight": 5,
+          "kind": "handoff",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "region": "source",
+          "what": "Scrubs the takes and marks the best moments into a selects sequence.",
+          "time": "Hours",
+          "weight": 6,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Builds the assembly, then the rough cut for story, then the fine cut for pacing.",
+          "time": "Days",
+          "weight": 8,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Editor",
+          "place": "Frame.io",
+          "what": "Uploads the cut for review.",
+          "time": "Minutes",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            2
+          ]
+        },
+        {
+          "who": "Producer",
+          "place": "Frame.io",
+          "what": "Watches the cut and leaves notes at timecodes.",
+          "time": "A day or more",
+          "weight": 4,
+          "kind": "wait",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Brings the notes in as markers and works through them.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            2
+          ]
+        },
+        {
+          "who": "Producer or client",
+          "place": "Frame.io",
+          "what": "Approves the cut, or sends another round.",
+          "time": "Per round",
+          "weight": 3,
+          "kind": "approval",
+          "ev": "assumed"
+        }
+      ],
+      "timeGoes": "Logging and finding the takes, before any story exists, then the wait between review rounds. Vague notes add rounds. The times here are Assumed: ask two editors how long each step takes on a real project.",
+      "write": {
+        "what": "Picture lock: the approved sequence is locked and exported for color and sound",
+        "system": "the editing app's project",
+        "who": "The editor locks and exports it once the producer approves",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    },
+    {
+      "id": "F2",
+      "name": "Picture lock to delivery",
+      "trigger": "the producer approves the cut",
+      "outcome": "masters and social versions delivered",
+      "steps": [
+        {
+          "who": "Producer",
+          "place": "Frame.io",
+          "what": "Declares picture lock: no more picture changes.",
+          "time": "One decision",
+          "weight": 1,
+          "kind": "approval",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Prepares and labels the tracks and exports for color and sound.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Colorist and mixer",
+          "place": "their own tools",
+          "what": "Grade the picture and mix the sound against the locked cut.",
+          "time": "Days",
+          "weight": 6,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            3
+          ]
+        },
+        {
+          "who": "Editor",
+          "region": "timeline",
+          "what": "Brings back the graded picture and the mix, then adds captions.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Editor",
+          "place": "export",
+          "what": "Exports the masters and each social version.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Client",
+          "place": "Frame.io",
+          "what": "Gives final approval before release.",
+          "time": "A day",
+          "weight": 2,
+          "kind": "approval",
+          "ev": "assumed"
+        }
+      ],
+      "timeGoes": "Rework when the picture changes after lock, and exporting versions one at a time."
+    }
+  ],
+  "placement": {
+    "surface": {
+      "region": "copilot",
+      "also": [
+        "timeline",
+        "bins",
+        "program"
+      ],
+      "text": "The copilot is a panel inside the editing app, docked beside the timeline under the inspector, so it sees what the editor sees: the open sequence, the playhead and the selection. Its work lands where an editor already looks: takes in a selects bin, a rough cut as a new sequence that plays in the program monitor, and markers at the timecodes it's talking about. In Premiere Pro it's a UXP plugin panel. Adobe says React runs in UXP panels after a build step; CopilotKit there is untested until the spike in C1.",
+      "notThis": "A chat window floating over the edit that can't see the sequence, answers \"try cutting at 01:12\" in text, and leaves the editor to make every change by hand.",
+      "ev": "assumed"
+    },
+    "reads": [
+      {
+        "text": "The open sequence: clips, tracks, in and out points, markers",
+        "detail": "Read through the editing app's plugin API (UXP in Premiere Pro) and sent with useAgentContext: clip ids, names and times, never the media itself",
+        "ev": "assumed"
+      },
+      {
+        "text": "The playhead position and the selected clips or range",
+        "detail": "What \"this\" and \"here\" mean when the editor asks",
+        "ev": "assumed"
+      },
+      {
+        "text": "Bin contents with their transcripts and tags",
+        "detail": "From the logging step: the copilot searches words and tags, not video frames",
+        "ev": "assumed"
+      },
+      {
+        "text": "Review notes as markers, with timecode and author",
+        "detail": "Imported from the review tool",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "text": "Project rules: delivery specs, naming, caption style",
+        "ev": "assumed"
+      }
+    ],
+    "does": [
+      {
+        "name": "findTakes",
+        "text": "Searches transcripts and tags for moments that match a description, such as every take where she mentions the launch.",
+        "ev": "assumed"
+      },
+      {
+        "name": "buildSelects",
+        "text": "Puts the matches into a selects bin, with in and out points.",
+        "ev": "assumed"
+      },
+      {
+        "name": "proposeRoughCut",
+        "text": "Builds a rough cut from the selects as a new sequence, through the plugin API, never editing the editor's own sequence.",
+        "ev": "assumed"
+      },
+      {
+        "name": "addMarker",
+        "text": "Adds a marker at a timecode, with a note.",
+        "ev": "assumed"
+      },
+      {
+        "name": "movePlayhead",
+        "text": "Jumps the playhead and the program monitor to the moment it's talking about.",
+        "ev": "assumed"
+      }
+    ],
+    "renders": [
+      {
+        "name": "showTakes",
+        "text": "Take cards in the panel: a frame strip, the transcript line and the duration, with Play and Add to selects.",
+        "detail": "Interactive cards: Play opens the take in the source monitor",
+        "ev": "assumed"
+      },
+      {
+        "name": "showCutSummary",
+        "text": "A card for the proposed cut: clip count, length, which script beats it covers, and what it left out.",
+        "ev": "assumed"
+      },
+      {
+        "name": "showNotesRound",
+        "text": "One card per review round: each note, its timecode, the proposed change and whether it's done.",
+        "ev": "assumed"
+      }
+    ],
+    "waits": [
+      {
+        "name": "applyToSequence",
+        "text": "Moving clips from the rough cut into the editor's own sequence: the card lists what it adds, moves and removes, with Apply or Keep as proposal.",
+        "ev": "assumed"
+      },
+      {
+        "name": "removeMedia",
+        "text": "Deleting or replacing any clip or media the editor placed.",
+        "ev": "assumed"
+      },
+      {
+        "name": "sendForReview",
+        "text": "Uploading a cut for the producer or client to review.",
+        "ev": "assumed"
+      },
+      {
+        "name": "exportDeliverables",
+        "text": "Rendering and delivering masters and versions.",
+        "ev": "assumed"
+      }
+    ],
+    "shared": [
+      {
+        "text": "The proposal: a rough-cut sequence and a selects bin that both the editor and the copilot change. The editor's trims always win; the copilot re-reads them and never restores its own in-point.",
+        "detail": "The editing app's project is the shared record: tools read and write it through the plugin API, and the panel sends what changed with useAgentContext (or AG-UI agent state via useAgent if your agent owns the edit)",
+        "ev": "assumed"
+      },
+      {
+        "text": "Markers: both add them, and both mark review notes as done.",
+        "ev": "assumed"
+      }
+    ],
+    "learns": [
+      {
+        "text": "Takes the editor rejects or re-trims from the copilot's selects.",
+        "ev": "assumed"
+      },
+      {
+        "text": "Notes producers repeat across projects (keep titles inside the safe area, no jump cuts in interviews), proposed as a house rule that a lead editor publishes.",
+        "detail": "CopilotKit Intelligence; a person publishes before the rule takes effect",
+        "ev": "assumed"
+      }
+    ]
+  },
+  "checklist": [
+    {
+      "id": "C1",
+      "what": "Prove CopilotKit runs in a panel inside the editing app",
+      "why": "Everything else on this list assumes it, and a one-day spike settles it.",
+      "how": "Build the React panel with UXP's build step, wrap it in CopilotKitProvider pointing at your runtime URL, and register one frontend tool that calls the plugin API.",
+      "piece": "CopilotKitProvider + useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/quickstart",
+      "file": "starters/open-harvey/src/components/LegalApp.tsx",
+      "done": "A UXP panel in Premiere Pro chats with your runtime, and one tool adds a marker to the open sequence."
+    },
+    {
+      "id": "C2",
+      "what": "Put the sequence, the playhead and the selection in context",
+      "why": "\"Tighten this\" only works if the copilot knows what \"this\" is.",
+      "how": "Read the sequence's clip list, the playhead time and the selection through the plugin API, and register each as its own context entry. Send ids and times, not media.",
+      "piece": "useAgentContext",
+      "docs": "https://docs.copilotkit.ai/agent-app-context",
+      "file": "starters/open-harvey/src/copilot/useAppContext.ts",
+      "done": "Asking \"what's under the playhead?\" names the clip without the editor describing it."
+    },
+    {
+      "id": "C3",
+      "what": "Make the footage searchable as text, then give the copilot a search tool",
+      "why": "The copilot searches transcripts and tags, not pixels; logging is the slowest part of the day.",
+      "how": "Transcribe and tag clips at ingest in your pipeline; a findTakes frontend tool searches them and a buildSelects tool fills a selects bin.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/copilot/useReviewTools.ts",
+      "done": "\"Every take where she mentions the launch\" returns timecoded takes from the bins."
+    },
+    {
+      "id": "C4",
+      "what": "Draw takes as cards the editor can play and keep",
+      "why": "An editor judges a take by watching it, not by reading about it.",
+      "how": "Register showTakes as an interactive component: Play opens the take in the source monitor, Add puts it in selects.",
+      "piece": "useComponent",
+      "docs": "https://docs.copilotkit.ai/generative-ui/your-components/interactive",
+      "file": "starters/open-harvey/src/copilot/useGenerativeUI.tsx",
+      "done": "Clicking Play on a take card cues it in the source monitor."
+    },
+    {
+      "id": "C5",
+      "what": "Propose the cut as a new sequence, never in the editor's own",
+      "why": "The editor's sequence is the record; the copilot works beside it until someone says yes.",
+      "how": "A proposeRoughCut tool builds a new sequence from the selects through the plugin API. Handlers read live state when they run.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/copilot/useReviewTools.ts",
+      "done": "The rough cut plays in the program monitor and the editor's own sequence is unchanged."
+    },
+    {
+      "id": "C6",
+      "what": "Gate every change to the real sequence",
+      "why": "One wrong apply can wreck a day's cut; the editor decides.",
+      "how": "applyToSequence as a human-in-the-loop card listing what it adds, moves and removes, with Apply or Keep as proposal.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useProposePlan.tsx",
+      "done": "Keep as proposal changes nothing; Apply changes exactly what the card listed."
+    },
+    {
+      "id": "C7",
+      "what": "Let the copilot hear the editor's trims",
+      "why": "Shared work means the copilot reacts to the editor's changes and never undoes them.",
+      "how": "When the editor trims a clip in the rough cut, post a short message and start a run; queue it while the agent is busy.",
+      "piece": "useAgent + useCopilotKit",
+      "docs": "https://docs.copilotkit.ai/shared-state",
+      "file": "starters/open-harvey/src/copilot/useTellCopilot.ts",
+      "done": "Re-trimming a clip in the rough cut makes the copilot acknowledge it and never restore its own in-point."
+    },
+    {
+      "id": "C8",
+      "what": "Turn a review round into a checklist of changes",
+      "why": "Vague notes add rounds; a list with timecodes and status ends them.",
+      "how": "Import notes as markers; the copilot proposes a change per note with addMarker and shows the round as a card.",
+      "piece": "useComponent",
+      "docs": "https://docs.copilotkit.ai/generative-ui/your-components/display-only",
+      "file": "starters/open-harvey/src/copilot/useGenerativeUI.tsx",
+      "done": "Each imported note has a marker, a proposed change and a status, and the card shows what's left."
+    },
+    {
+      "id": "C9",
+      "what": "Gate review uploads and exports",
+      "why": "What leaves the edit suite reaches a producer or a client.",
+      "how": "sendForReview and exportDeliverables as human-in-the-loop cards naming the version and the recipients.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useRequestApproval.tsx",
+      "done": "Nothing is uploaded or exported without a click that names the version and who receives it."
+    },
+    {
+      "id": "C10",
+      "what": "Record rejected takes and repeated notes",
+      "why": "The house style lives in producers' heads until it's written down.",
+      "how": "Store each rejection and note with who and when; propose a house rule from repeats; a lead editor publishes it.",
+      "piece": "CopilotKit Intelligence",
+      "docs": "https://docs.copilotkit.ai/learning",
+      "file": "starters/open-harvey/src/lib/learning.ts",
+      "done": "A note that comes back on three projects shows up as a proposed house rule a person can publish."
+    },
+    {
+      "id": "C11",
+      "what": "Watch the context and the tool calls in the web inspector while you build",
+      "why": "When \"tighten this\" goes wrong, you need to see what the agent was told the selection was and which tool it picked.",
+      "how": "Leave enableInspector on CopilotKitProvider in development: it shows the agent, the AG-UI events, the registered frontend tools and the shared context for each run.",
+      "piece": "CopilotKit web inspector",
+      "docs": "https://docs.copilotkit.ai/inspector",
+      "file": "starters/open-harvey/src/components/LegalApp.tsx",
+      "done": "During a run, the inspector shows the sequence, playhead and selection entries and each findTakes call."
+    }
+  ],
+  "validate": {
+    "who": [
+      "An editor who cuts interviews or branded content every week",
+      "An assistant editor who ingests and logs footage",
+      "A producer who reviews cuts and leaves notes"
+    ],
+    "ask": [
+      "On a typical shoot day, how long do logging and finding the takes really take?",
+      "Would a copilot panel docked beside the timeline work for you, or would you rather call it from a command bar?",
+      "Would you let a copilot put clips on a ghost track? What would you need to see before you apply it?",
+      "How do review notes reach you today, and which are hardest to act on?",
+      "Which changes must never happen without your click: deleting media, replacing clips, exporting?"
+    ]
+  },
+  "sources": [
+    {
+      "id": 1,
+      "title": "Get started with Premiere Pro",
+      "publisher": "Adobe",
+      "url": "https://www.adobe.com/learn/premiere-pro/web/get-started-premiere-pro",
+      "supports": "The four panels used for editing (project panel, source monitor, timeline, program monitor) and what each is for.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 2,
+      "title": "Team review with Frame.io",
+      "publisher": "Adobe",
+      "url": "https://www.adobe.com/us/learn/premiere-pro/web/team-review-with-frame-io",
+      "supports": "Reviewers comment on an uploaded cut, and their comments come back into the timeline as markers at the matching timecode.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 3,
+      "title": "Post-production stages, from editing to final delivery",
+      "publisher": "C&I Studios",
+      "url": "https://c-istudios.com/post-production-stages-step-by-step-guide-from-editing-to-final-delivery/",
+      "supports": "Ingest, backups, proxies and logging come first; rough cut, fine cut, then picture lock; color and sound depend on the locked cut; vague feedback adds revision rounds.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 4,
+      "title": "Kino AI",
+      "publisher": "Y Combinator company page",
+      "url": "https://www.ycombinator.com/companies/kino-ai",
+      "supports": "An editing product where people and AI agents work on the same footage.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 5,
+      "title": "Premiere Pro UXP",
+      "publisher": "Adobe Developer",
+      "url": "https://developer.adobe.com/premiere-pro/uxp/",
+      "supports": "Premiere Pro has a built-in plugin framework, UXP, for panels and tools inside the app.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 6,
+      "title": "UXP tech stack",
+      "publisher": "Adobe Developer",
+      "url": "https://developer.adobe.com/uxp/guides/explanation/tech-stack/",
+      "supports": "Frameworks such as React run in UXP panels after a local build step; UXP supports a subset of HTML and CSS, so check its API reference.",
+      "accessed": "2026-11-05"
+    }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  /* /functional-copilot is the root; /user-map is its step 1, Research. Same strip in all five skills. */
+  var STEPS = [
+    { n: "1", label: "Research", cmd: "/user-map" },
+    { n: "2", label: "Context & access", cmd: "/agent-context" },
+    { n: "3", label: "Spec & build", cmd: "/functional-copilot" },
+    { n: "4", label: "Deploy", cmd: "/deploy" },
+    { n: "5", label: "Secure & govern", cmd: "/secure-governance" }
+  ];
+  var DOCS = "https://docs.copilotkit.ai/";
+  var ROWS = [
+    { key: "surface", label: "Where it lives", q: "The panel or surface it occupies, inside the workspace", piece: "Your own panel on the v2 hooks (CopilotSidebar or CopilotChat only where a chat fits)", docs: DOCS + "custom-look-and-feel/headless-ui" },
+    { key: "reads", label: "What it reads", q: "The selection, the open object, the position: sent with every run", piece: "useAgentContext", docs: DOCS + "agent-app-context" },
+    { key: "does", label: "What it can do", q: "Actions in the app, run in the browser with the user's session", piece: "useFrontendTool", docs: DOCS + "frontend-tools" },
+    { key: "renders", label: "What it renders", q: "Generative UI: its work drawn as the workspace's own objects", piece: "useComponent", docs: DOCS + "generative-ui/your-components/display-only" },
+    { key: "waits", label: "What waits for a person", q: "Every write, send and approval pauses for a click", piece: "useHumanInTheLoop", docs: DOCS + "human-in-the-loop" },
+    { key: "shared", label: "What both edit", q: "The state the user and the agent share, and who wins", piece: "useAgent (AG-UI agent state), or app state through useAgentContext + useFrontendTool", docs: DOCS + "shared-state" },
+    { key: "learns", label: "What it learns from", q: "Corrections people make, turned into skills a person publishes", piece: "CopilotKit Intelligence: Automatic Learning", docs: DOCS + "learning" }
+  ];
+  /* Route (d): the copilot lives in Slack or Teams through the Channels SDK, so the rows change. */
+  var ROWS_CHAT = [
+    { key: "surface", label: "Where it lives", q: "The conversation it answers in: a Slack or Teams channel, thread or DM", piece: "Channels SDK (createChannel)", docs: DOCS + "slack" },
+    { key: "reads", label: "What it reads", q: "The thread's messages, who sent them, and the record they're about", piece: "thread.runAgent({ context }) + the sender's identity", docs: DOCS + "reference/channels" },
+    { key: "does", label: "What it can do", q: "Actions, run on the server because there's no browser behind a message", piece: "defineTool in the runtime · defineChannelTool", docs: DOCS + "server-tools" },
+    { key: "renders", label: "What it renders", q: "Messages it posts: cards, fields, tables and buttons", piece: "Channels UI components via thread.post", docs: DOCS + "reference/channels" },
+    { key: "waits", label: "What waits for a person", q: "Buttons: who may answer, and nothing is written until the click", piece: "thread.awaitChoice({ answerableBy }) · Button onClick", docs: DOCS + "slack/interactive" },
+    { key: "shared", label: "What both edit", q: "The record on the server, keyed by request, so chat and web edit the same thing", piece: "a StateStore or your database", docs: DOCS + "slack/persistence-and-scaling" },
+    { key: "learns", label: "What it learns from", q: "Corrections people make, turned into skills a person publishes", piece: "CopilotKit Intelligence: Automatic Learning", docs: DOCS + "learning" }
+  ];
+  var KIND = { work: "Work", handoff: "Handoff", approval: "Approval", wait: "Waiting" };
+
+  var root = document.getElementById("map");
+  var data;
+  try { data = JSON.parse(document.getElementById("user-map-data").textContent); }
+  catch (e) { root.appendChild(h("p", { class: "err" }, "The map data is not valid JSON: " + e.message)); return; }
+
+  /* storage: optional; the page works without it */
+  var store = null;
+  try { var k = "__user_map__"; window.localStorage.setItem(k, k); window.localStorage.removeItem(k); store = window.localStorage; } catch (e) { store = null; }
+  function sget(key) { if (!store) return null; try { return store.getItem(key); } catch (e) { return null; } }
+  function sset(key, v) { if (!store) return; try { if (v === null) store.removeItem(key); else store.setItem(key, v); } catch (e) {} }
+
+  function h(tag, attrs) {
+    var el = document.createElement(tag), i, kid;
+    if (attrs) for (var a in attrs) {
+      if (!Object.prototype.hasOwnProperty.call(attrs, a) || attrs[a] == null || attrs[a] === false) continue;
+      if (a === "class") el.className = attrs[a];
+      else if (a.slice(0, 2) === "on") el.addEventListener(a.slice(2), attrs[a]);
+      else el.setAttribute(a, attrs[a] === true ? "" : attrs[a]);
+    }
+    for (i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, kid) {
+    if (kid == null || kid === false) return;
+    if (Array.isArray(kid)) { kid.forEach(function (k) { add(el, k); }); return; }
+    el.appendChild(typeof kid === "object" ? kid : document.createTextNode(String(kid)));
+  }
+  function arr(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
+  function safeUrl(u) { return /^https?:\/\//i.test(String(u || "")) ? u : null; }
+  function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60); }
+
+  var meta = data.meta || {};
+  var KEY = "user-map/" + slug((meta.role || "") + "-" + (meta.app || "") + "-" + (meta.date || ""));
+  var srcIds = {};
+  arr(data.sources).forEach(function (s) { srcIds[s.id] = s; });
+
+  /* evidence chips */
+  function ev(item) {
+    if (!item || !item.ev) return null;
+    if (item.ev === "confirmed") return h("span", { class: "ev confirmed", title: item.by ? "Confirmed by " + item.by : "Confirmed with a real user" }, "Confirmed");
+    if (item.ev === "sourced") {
+      var ids = arr(item.src);
+      if (!ids.length) return h("span", { class: "ev assumed", title: "Marked sourced but no source given" }, "Assumed");
+      return ids.map(function (id) {
+        var s = srcIds[id];
+        return h("a", { class: "ev sourced", href: "#src-" + id, title: s ? s.title : "Source " + id }, "[" + id + "]");
+      });
+    }
+    return h("span", { class: "ev assumed", title: "Not confirmed yet: check it with real users" }, "Assumed");
+  }
+  function cls(item, base) { return (base || "") + (item && item.ev === "assumed" ? " assumed" : ""); }
+
+  /* tally evidence across the whole map */
+  var tally = { sourced: 0, assumed: 0, confirmed: 0 }, assumedList = [];
+  (function walk(x, where) {
+    if (Array.isArray(x)) { x.forEach(function (y) { walk(y, where); }); return; }
+    if (!x || typeof x !== "object") return;
+    if (x.ev && tally.hasOwnProperty(x.ev)) {
+      var e = x.ev === "sourced" && !arr(x.src).length ? "assumed" : x.ev;
+      tally[e]++;
+      if (e === "assumed") assumedList.push({ where: where, text: x.text || x.what || x.label || x.name || x.summary || ([x.when, x.want].filter(Boolean).join(", ")) || "" });
+    }
+    for (var key in x) if (key !== "sources" && key !== "checklist" && key !== "validate") walk(x[key], where || key);
+  })(data, "");
+
+  function section(id, num, title, lede) {
+    var s = h("section", { class: "s", id: id, "aria-labelledby": id + "-h" },
+      h("div", { class: "shead" }, h("span", { class: "num" }, num), h("h2", { id: id + "-h" }, title), lede ? h("p", null, lede) : null));
+    root.appendChild(s);
+    return s;
+  }
+
+  /* ---------- the top: where this sits, one headline, role → software → copilot ---------- */
+  var top = h("header", { class: "top" });
+  top.appendChild(h("p", { class: "sroot", style: "margin:0" }, "functional-copilot"));
+  top.appendChild(h("ol", { class: "suite5", "aria-label": "Where this skill sits in functional-copilot" },
+    STEPS.map(function (st, i) {
+      return h("li", null, h("span", { class: "st" + (i === 0 ? " now" : ""), title: st.cmd, "aria-current": i === 0 ? "step" : null }, h("b", null, st.n), st.label));
+    }),
+    h("li", null, h("span", { class: "st learn", title: "CopilotKit Intelligence" }, "Learn"))));
+  top.appendChild(h("h1", null, meta.headline || ((meta.role || "Role") + " in " + (meta.app || "their software"))));
+  var mp = meta.path || {}, SW0 = data.software || {}, S0 = (data.placement && data.placement.surface) || {};
+  var surfName = (arr(SW0.regions).filter(function (r) { return r.id === S0.region; })[0] || {}).name || "Copilot";
+  function clip(t, n) { t = String(t || ""); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : t; }
+  var PC = [
+    { k: "Role", href: "#role", t: meta.role, s: mp.role || meta["function"] },
+    { k: "Software", href: "#software", t: meta.app, s: mp.software || (SW0.pattern || {}).name },
+    { k: "Copilot placement", href: "#placement", t: surfName, s: mp.copilot || clip(S0.text, 110), cp: true }
+  ];
+  var rp = h("ol", { class: "rpath", "aria-label": "Role, software, copilot placement" });
+  PC.forEach(function (c, i) {
+    if (i) rp.appendChild(h("li", { class: "arr", "aria-hidden": "true" }, "→"));
+    rp.appendChild(h("li", { class: "pc" + (c.cp ? " cp" : "") }, h("a", { href: c.href },
+      h("span", { class: "pk" }, c.k), h("span", { class: "pt" }, c.t || ""), h("span", { class: "ps" }, c.s || ""))));
+  });
+  top.appendChild(rp);
+  top.appendChild(h("p", { class: "scrollhint" }, h("a", { href: "#glance" }, "The full map ↓")));
+  root.appendChild(top);
+
+  /* ---------- below the fold: the detail ---------- */
+  var glance = h("section", { id: "glance", "aria-label": "About this map" });
+  if (meta.oneLine) glance.appendChild(h("p", { class: "oneline" }, meta.oneLine));
+  var metaRows = [
+    ["Function", meta["function"]], ["Works in", meta.app], ["Shape", meta.shape], ["Copilot built in", meta.building],
+    ["Date", meta.date], ["Prepared for", meta.preparedFor],
+    ["Evidence", tally.sourced + " sourced · " + tally.assumed + " assumed · " + tally.confirmed + " confirmed"]
+  ];
+  glance.appendChild(h("dl", { class: "meta" }, metaRows.filter(function (r) { return r[1]; }).map(function (r) {
+    return h("div", { class: String(r[1]).length > 60 ? "wide" : null }, h("dt", null, r[0]), h("dd", null, r[1]));
+  })));
+  glance.appendChild(h("div", { class: "legend" },
+    h("span", { class: "ev sourced" }, "[1]"), "a source backs it",
+    h("span", { class: "ev assumed" }, "Assumed"), "not checked yet",
+    h("span", { class: "ev confirmed" }, "Confirmed"), "a real user said so",
+    meta.research === "no-web" ? h("span", null, "· No web research was available for this map, so most of it is Assumed.") : null));
+  root.appendChild(glance);
+
+  var PATH = [["role", "Role"], ["software", "Software"], ["pattern", "UI pattern"], ["jobs", "Jobs to be done"], ["flows", "Flows"], ["placement", "Copilot placement"]];
+  root.appendChild(h("nav", { class: "path", "aria-label": "The map" }, h("ol", null, PATH.map(function (p, i) {
+    return h("li", null, h("a", { href: "#" + p[0] }, h("span", { class: "n" }, "0" + (i + 1)), p[1]));
+  }))));
+
+  /* ---------- 01 role ---------- */
+  var R = data.role || {};
+  var s1 = section("role", "01", "The role", "Who does this work, what they're measured on, and where their day goes.");
+  var roleLeft = h("div", { class: "card" }, h("p", null, R.summary || ""),
+    arr(R.measuredOn).length ? [h("h3", { style: "margin-top:12px" }, "Measured on"), h("ul", { class: "plain" }, arr(R.measuredOn).map(function (m) { return h("li", null, m.text, ev(m)); }))] : null);
+  var roleRight = h("div", { class: "card" }, h("h3", null, "Where the day goes"),
+    h("div", { class: "day" }, arr(R.day).map(function (d) {
+      var pct = Math.max(0, Math.min(100, Number(d.share) || 0));
+      return h("div", { class: "dayrow" }, h("span", null, d.label, ev(d)),
+        h("span", { class: "track" + (d.ev === "assumed" ? " assumed" : ""), role: "img", "aria-label": pct + " percent" }, h("i", { style: "width:" + pct + "%" })),
+        h("span", { class: "pct" }, pct + "%"));
+    })),
+    arr(R.people).length ? [h("h3", { style: "margin-top:16px" }, "Works with"), h("ul", { class: "plain" }, arr(R.people).map(function (p) { return h("li", null, h("b", null, p.name), " · ", p.relation, ev(p)); }))] : null);
+  s1.appendChild(h("div", { class: "grid2" }, roleLeft, roleRight));
+
+  /* ---------- 02 software ---------- */
+  var SW = data.software || {};
+  var s2 = section("software", "02", "The software", "What they spend the day in, and what sits around it.");
+  var prim = SW.primary || {};
+  s2.appendChild(h("div", { class: "grid2" },
+    h("div", { class: cls(prim, "card") }, h("p", { class: "eyebrow", style: "margin:0 0 6px" }, "Main workspace"),
+      h("p", { style: "font:500 22px/1.25 var(--serif);margin:0 0 6px" }, prim.name || "", ev(prim)), h("p", { class: "muted", style: "margin:0" }, prim.why || "")),
+    h("div", { class: "card" }, h("p", { class: "eyebrow", style: "margin:0 0 6px" }, "Around it"),
+      h("ul", { class: "plain" }, arr(SW.around).map(function (a) { return h("li", null, h("b", null, a.name), " · ", a.why, ev(a)); })))));
+
+  /* ---------- 03 pattern ---------- */
+  var P = SW.pattern || {}, L = SW.layout || {}, REG = arr(SW.regions);
+  var regById = {}; REG.forEach(function (r) { regById[r.id] = r; });
+  function wire(cp) {
+    var areas = arr(L.areas);
+    var g = h("div", { class: "wire", role: "img", "aria-label": (cp ? "Where the copilot sits in " : "Layout of ") + (P.name || "the workspace") });
+    g.style.gridTemplateColumns = L.columns || "repeat(" + ((areas[0] || "").split(/\s+/).length || 1) + ", minmax(0,1fr))";
+    if (L.rows) g.style.gridTemplateRows = L.rows;
+    if (areas.length) g.style.gridTemplateAreas = areas.map(function (r) { return '"' + r.replace(/[^\w\s.-]/g, "") + '"'; }).join(" ");
+    var surf = cp ? (data.placement && data.placement.surface) || {} : {};
+    var also = arr(surf.also);
+    REG.forEach(function (r) {
+      var isCp = cp && r.id === surf.region, isAlso = cp && also.indexOf(r.id) >= 0;
+      var isNew = !!r["new"] && !isCp && !isAlso;
+      var box = h("div", { class: "rg" + (isCp ? " cp" : "") + (isAlso ? " also" : "") + (isNew ? " new" : "") },
+        isCp ? h("span", { class: "badge" }, "Copilot") : null,
+        isAlso ? h("span", { class: "badge" }, "Lands here") : null,
+        isNew ? h("span", { class: "badge", title: "Not in today's software: the copilot adds it" }, "New") : null,
+        h("b", null, r.name), h("span", { class: "hd" }, isNew ? "" : (r.holds || "")));
+      if (/^[A-Za-z][\w-]*$/.test(r.id || "")) box.style.gridArea = r.id;
+      g.appendChild(box);
+    });
+    return g;
+  }
+  var s3 = section("pattern", "03", "The UI pattern: " + (P.name || ""), "The shape of the workspace: its regions, the object of work, and what the user selects.");
+  s3.appendChild(h("div", { class: "grid2" },
+    h("div", null, wire(false), h("p", { class: "wirecap" }, "A schematic of the pattern, not a picture of any product.")),
+    h("div", { class: cls(P, "card") }, h("p", null, P.summary || "", ev(P)),
+      h("dl", { class: "ck", style: "margin-top:10px" },
+        h("dt", null, "Object of work"), h("dd", null, P.object || ""),
+        h("dt", null, "Selection"), h("dd", null, P.selection || ""),
+        h("dt", null, "Open at once"), h("dd", null, P.open || "")))));
+  var rt = h("table", { class: "t", style: "margin-top:14px" },
+    h("thead", null, h("tr", null, h("th", null, "Region"), h("th", null, "What it holds"), h("th", null, "What the user does there"))),
+    h("tbody", null, REG.map(function (r) {
+      return h("tr", { class: r.ev === "assumed" ? "assumed" : null },
+        h("td", { "data-l": "Region" }, h("b", null, r.name), r["new"] ? h("span", { class: "newtag" }, "New") : null, ev(r)), h("td", { "data-l": "Holds" }, r.holds || ""), h("td", { "data-l": "Does" }, r.does || ""));
+    })));
+  s3.appendChild(rt);
+
+  /* ---------- 04 jobs ---------- */
+  var s4 = section("jobs", "04", "Jobs to be done", "When this happens, I want to do this, so I can get that: in the user's words. The filled card is the copilot's first job.");
+  s4.appendChild(h("div", { class: "cards" }, arr(data.jobs).map(function (j) {
+    return h("article", { class: cls(j, "card job") + (j.first ? " first" : "") },
+      j.first ? h("span", { class: "starthere" }, "Start here") : null,
+      h("span", { class: "jid" }, j.id || ""),
+      h("p", { class: "stmt", style: "margin:0" }, "When ", h("em", null, j.when), ", I want to ", h("em", null, j.want), ", so I can ", j.so, ".", ev(j)),
+      h("dl", null, j.often ? [h("dt", null, "How often"), h("dd", null, j.often)] : null, j.pain ? [h("dt", null, "What's slow"), h("dd", null, j.pain)] : null));
+  })));
+
+  /* ---------- 05 flows ---------- */
+  var s5 = section("flows", "05", "Key flows", "Step by step: where the time goes, and where work changes hands or waits for an approval.");
+  s5.appendChild(h("div", { class: "legend", style: "margin:-4px 0 14px" },
+    h("span", { class: "kind approval" }, "Approval"), "a person decides",
+    h("span", { class: "kind handoff" }, "Handoff"), "work changes hands",
+    h("span", { class: "kind wait" }, "Waiting"), "nothing moves"));
+  arr(data.flows).forEach(function (f) {
+    var maxW = Math.max.apply(null, arr(f.steps).map(function (s) { return Number(s.weight) || 1; }).concat([1]));
+    s5.appendChild(h("div", { class: "flow", id: "flow-" + slug(f.id || f.name) },
+      h("div", { class: "flowhead" }, h("h3", null, f.name || ""), h("span", { class: "io" }, (f.trigger || "") + "  →  " + (f.outcome || ""))),
+      h("ol", { class: "steps" }, arr(f.steps).map(function (s) {
+        var reg = regById[s.region];
+        var w = Math.round(((Number(s.weight) || 1) / maxW) * 100);
+        var kind = KIND[s.kind] ? s.kind : "work";
+        return h("li", { class: s.ev === "assumed" ? "assumed" : null },
+          h("div", { class: "stepbody" },
+            h("div", null, h("span", { class: "who" }, s.who || ""), reg ? h("span", { class: "where" }, " · in " + reg.name) : ((s.place || s.region) ? h("span", { class: "where" }, " · " + (s.place || s.region)) : null),
+              h("div", null, s.what || "", ev(s))),
+            h("div", { class: "timecol" }, s.time || "", h("div", { class: "track" + (s.ev === "assumed" ? " assumed" : ""), "aria-hidden": "true" }, h("i", { style: "width:" + w + "%" }))),
+            h("span", { class: "kind " + kind }, KIND[kind])));
+      })),
+      f.timeGoes ? h("p", { class: "timegoes" }, h("b", null, "Where the time goes: "), f.timeGoes) : null,
+      f.write ? h("p", { class: "timegoes" }, h("b", null, "After the last approval: "), f.write.what || "", f.write.system ? ", in " + f.write.system : "", f.write.who ? ". " + f.write.who : "", ".", ev(f.write)) : null));
+  });
+
+  /* ---------- 06 placement ---------- */
+  var PL = data.placement || {};
+  var s6 = section("placement", "06", "Where the copilot lives", "Inside the app space, where the work happens, not in a chat box beside it. Each row is one CopilotKit piece.");
+  var surf = PL.surface || {};
+  s6.appendChild(h("div", { class: "grid2", style: "margin-bottom:6px" },
+    h("div", null, wire(true), h("p", { class: "wirecap" }, "Filled: where the copilot sits. Outlined (Lands here): where its work shows up.")),
+    h("div", { class: cls(surf, "card") }, h("p", { style: "font:400 16px/1.5 var(--serif)" }, surf.text || "", ev(surf)),
+      surf.notThis ? h("p", { class: "notthis" }, h("b", null, "Not this: "), surf.notThis) : null)));
+  (meta.route === "chat" ? ROWS_CHAT : ROWS).forEach(function (row) {
+    var items = row.key === "surface" ? [] : arr(PL[row.key]);
+    if (row.key === "surface") {
+      var r = regById[surf.region];
+      items = [{ name: r ? r.name : surf.region, text: (arr(surf.also).length ? "Its work lands in: " + arr(surf.also).map(function (id) { return regById[id] ? regById[id].name : id; }).join(", ") + "." : ""), ev: surf.ev, src: surf.src }];
+    }
+    var u = safeUrl(row.docs);
+    s6.appendChild(h("div", { class: "prow" },
+      h("div", null, h("h3", null, row.label), h("p", { class: "q" }, row.q), u ? h("a", { class: "piece", href: u, target: "_blank", rel: "noopener" }, row.piece) : h("span", { class: "piece" }, row.piece)),
+      h("ul", { class: "pitems" }, items.length ? items.map(function (it) {
+        return h("li", { class: it.ev === "assumed" ? "assumed" : null },
+          it.name ? h("span", { class: "tname" }, it.name) : null, it.text, ev(it), it.detail ? h("span", { class: "det" }, it.detail) : null);
+      }) : h("li", { class: "assumed" }, "Not mapped yet."))));
+  });
+
+  /* ---------- 07 checklist ---------- */
+  var CL = arr(data.checklist);
+  var s7 = meta.exists
+    ? section("build", "07", "Verify checklist", "The copilot already exists: check each item in the running app, and fix the gaps. Ticks are saved in this browser only.")
+    : section("build", "07", "Build checklist", "What to build first so the copilot lives where this map says. Ticks are saved in this browser only.");
+  var prog = h("p", { class: "progress", "aria-live": "polite" });
+  s7.appendChild(prog);
+  var list = h("ol", { class: "check" });
+  function refresh() {
+    var n = list.querySelectorAll("input:checked").length;
+    prog.textContent = n + " of " + CL.length + " done" + (store ? "" : " · ticks won't be saved in this browser");
+  }
+  CL.forEach(function (c, i) {
+    var id = "c-" + (c.id || i);
+    var box = h("input", { type: "checkbox", id: id });
+    var li = h("li", null, box,
+      h("div", null,
+        h("label", { class: "what", "for": id }, h("span", { class: "cid" }, c.id || ""), c.what || ""),
+        h("dl", { class: "ck" },
+          h("dt", null, "Why"), h("dd", null, c.why || ""),
+          h("dt", null, "How"), h("dd", null, c.how || "", " ",
+            c.piece ? (safeUrl(c.docs) ? h("a", { class: "piece", href: c.docs, target: "_blank", rel: "noopener" }, c.piece) : h("span", { class: "piece" }, c.piece)) : null,
+            c.file ? [" ", h("code", null, c.file)] : null),
+          h("dt", null, "Done when"), h("dd", null, c.done || ""))));
+    if (sget(KEY + "/" + id) === "1") { box.checked = true; li.className = "done"; }
+    box.addEventListener("change", function () { li.className = box.checked ? "done" : ""; sset(KEY + "/" + id, box.checked ? "1" : null); refresh(); });
+    list.appendChild(li);
+  });
+  s7.appendChild(list);
+  refresh();
+
+  /* ---------- 08 validate ---------- */
+  var V = data.validate || {};
+  var s8 = section("validate", "08", "Check it with two or three real users", "This map is a draft until people who do the job have read it. Walk them through it, then flip what they confirm.");
+  s8.appendChild(h("ul", { class: "who3" }, arr(V.who).map(function (w, i) {
+    var id = "v-" + i, box = h("input", { type: "checkbox", id: id });
+    var li = h("li", null, box, h("label", { "for": id }, h("b", null, "Session " + (i + 1) + ": "), w));
+    if (sget(KEY + "/" + id) === "1") { box.checked = true; li.className = "done"; }
+    box.addEventListener("change", function () { li.className = box.checked ? "done" : ""; sset(KEY + "/" + id, box.checked ? "1" : null); });
+    return li;
+  })));
+  var asks = arr(V.ask);
+  s8.appendChild(h("div", { class: "grid2" },
+    h("div", { class: "card" }, h("h3", null, "Ask them"), h("ol", { class: "asks" }, asks.map(function (a) { return h("li", null, a); }))),
+    h("div", { class: "card assumed" }, h("h3", null, assumedList.length + " things marked Assumed"),
+      assumedList.length ? h("ol", { class: "asks" }, assumedList.slice(0, 14).map(function (a) { return h("li", null, a.text, h("span", { class: "muted small" }, " · " + a.where)); })) : h("p", { class: "muted" }, "None. Everything is sourced or confirmed."),
+      assumedList.length > 14 ? h("p", { class: "muted small", style: "margin-top:6px" }, "and " + (assumedList.length - 14) + " more in the map above.") : null,
+      h("p", { class: "muted small", style: "margin:10px 0 0" }, "When a user confirms one, set its \"ev\" to \"confirmed\" in user-map.json and rebuild."))));
+
+  /* ---------- 09 sources ---------- */
+  var s9 = section("sources", "09", "Sources", meta.research === "no-web" ? "No web research was available; only the sources below were read." : "Every [n] in the map points here. Products are described in our own words.");
+  var SR = arr(data.sources);
+  s9.appendChild(SR.length ? h("ol", { class: "src" }, SR.map(function (s) {
+    var u = safeUrl(s.url);
+    return h("li", { id: "src-" + s.id, value: s.id },
+      u ? h("a", { href: u, target: "_blank", rel: "noopener" }, s.title || u) : h("span", null, s.title || ""),
+      s.publisher ? h("span", { class: "muted" }, " · " + s.publisher) : null,
+      s.supports ? h("div", null, s.supports) : null,
+      h("div", { class: "url" }, (u || s.url || "") + (s.accessed ? " · read " + s.accessed : "")));
+  })) : h("p", { class: "muted" }, "No sources yet: everything above is Assumed."));
+
+  /* ---------- next ---------- */
+  root.appendChild(h("footer", { class: "end" },
+    h("h2", null, "Next: 2 Context & access, in /agent-context"),
+    h("p", { style: "margin:0" }, "Then 3 Spec & build, in /functional-copilot. Both start from ", h("code", null, "docs/copilot/user-map.md"), ": the role, the first job, its shape, the flow and the placement are already answered, so neither asks again what this map settled. Check the map with real users first."),
+    h("p", { class: "fine" }, "Open-source example built with CopilotKit. Products named here are described for illustration; not affiliated with or endorsed by them."),
+    meta.disclaimer ? h("p", { class: "fine", style: "margin-top:6px" }, meta.disclaimer) : null,
+    h("p", { class: "fine", style: "margin-top:6px" }, "Made with /user-map · " + (meta.date || ""))));
+
+  /* ---------- tools ---------- */
+  var themeBtn = document.getElementById("theme");
+  var MODES = ["auto", "light", "dark"], NAMES = { auto: "Auto", light: "Light", dark: "Dark" };
+  var mode = sget("user-map/theme");
+  if (MODES.indexOf(mode) < 0) mode = "auto";
+  function applyTheme() {
+    if (mode === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    themeBtn.textContent = "Theme: " + NAMES[mode];
+  }
+  applyTheme();
+  themeBtn.addEventListener("click", function () {
+    mode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+    sset("user-map/theme", mode === "auto" ? null : mode);
+    applyTheme();
+  });
+  document.getElementById("print").addEventListener("click", function () { window.print(); });
+  if (meta.role) document.title = "User map · " + meta.role;
+})();
+</script>
+</body>
+</html>

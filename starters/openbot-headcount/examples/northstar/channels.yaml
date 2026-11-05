@@ -1,0 +1,15 @@
+# OpenBot channels are conversations inside OpenBot, not Slack or Teams channels.
+#
+# Slack and Microsoft Teams are not configured in the tenant package at all. They arrive through
+# OpenTag (CopilotKit's open-source Slack/Teams front), which calls OpenBot as an AG-UI agent; the
+# settings are environment variables (OPENTAG_SHARED_SECRET, OPENTAG_URL) and each person links their
+# own Slack or Teams identity to Hana from the Bot's page, under Reaching you. See the starter README.
+#
+# `allowed_groups` is validated and stored and decides nothing today (docs/configuration.md).
+# `headcount-copilot-web` is dropped automatically while HEADCOUNT_WEB_AGENT_URL is unset.
+channels:
+  - id: headcount-requests
+    name: Headcount Requests
+    description: Draft a headcount request and its business case, then submit it for approval.
+    permitted_agents: [headcount-copilot, headcount-copilot-web]
+    allowed_groups: [all]

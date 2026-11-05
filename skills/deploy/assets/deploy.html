@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Deploy checklist</title>
+<!-- /deploy skill page. Edit only the JSON in #checklist-data (skills/deploy/scripts/fill.mjs writes it). -->
+<script type="application/json" id="checklist-data">{"skill":"deploy","app":"Your app","function":"Your function · its first workflow","repo":".","date":"2026-01-01","summary":"Template. The /deploy skill replaces this with two or three sentences: what is being deployed, for whom, and where it stands. Every item below starts as to do with the standard what, why, how and done-when.","decisions":[{"label":"Process","value":"Long-lived Node or serverless, and why","assumed":true},{"label":"Threads","value":"CopilotKit Intelligence for real users; the in-memory runner on one instance for a public demo","assumed":true},{"label":"Host","value":"Vercel, Railway, Render or Docker on your platform","assumed":true},{"label":"Model","value":"Scripted mock on anything public; the real model only behind sign-in","assumed":true},{"label":"Sign-in","value":"Your identity provider through the app's sign-in, checked again in `hooks.onRequest`; none only for a public demo on seeded data","assumed":true},{"label":"Environments","value":"Local, staging, production, each with its own keys","assumed":true}],"env":[{"name":"OPENAI_API_KEY","purpose":"The model provider's key (or `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`)","secret":true,"local":"`.env.local`, set by you","staging":"Host secret, staging key","production":"Host secret, production key, only behind sign-in"},{"name":"CPK_INTELLIGENCE_API_KEY","purpose":"CopilotKit Intelligence project key, only where Intelligence is on","secret":true,"local":"`.env.local`, if on","staging":"Staging Intelligence key, if on","production":"Production Intelligence key, if on"},{"name":"COPILOTKIT_TELEMETRY_DISABLED","purpose":"`true` turns off the runtime's usage telemetry","secret":false,"local":"Your choice","staging":"Your choice","production":"Your choice"},{"name":"PORT","purpose":"The port to listen on","secret":false,"local":"Script default","staging":"Set by the host","production":"Set by the host"}],"commands":[{"label":"Build","cmd":"npm ci && npm run build","needsYes":false},{"label":"Run the production build locally","cmd":"PORT=3290 npm run start","needsYes":false,"note":"Use the start script that binds `0.0.0.0`."},{"label":"Deploy (example: Railway)","cmd":"railway up --service \u003cservice> -e \u003cenvironment>","needsYes":true,"note":"Signs in or creates an account if you aren't signed in. Always name the environment."}],"sections":[{"id":"runtime","title":"Where the runtime runs","items":[{"id":"runtime-endpoint","status":"todo","title":"The runtime endpoint is known","what":"Which handler serves the CopilotKit runtime, at which path, with which agent.","why":"Everything else (the host, sign-in, the health check) attaches to this one endpoint.","how":"CopilotKit Runtime: `CopilotRuntime` served by `createCopilotRuntimeHandler` from `@copilotkit/runtime/v2` (a Next.js route), with the agents in its `agents` map. `GET {basePath}/info` lists the agents and the mode.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"The file, the base path and the agent are named here, and `/info` answers locally.","footnote":"`createCopilotExpressHandler`, `createCopilotHonoHandler` or `createCopilotNodeListener` serve the same runtime on Express, Hono or plain Node. The v1 `copilotRuntimeNextJSAppRouterEndpoint` doesn't forward `hooks`."},{"id":"process-shape","status":"todo","title":"Long-lived Node or serverless, decided","what":"Whether the runtime runs as one process that stays up, or as a function per request.","why":"A run is one open SSE stream. Channels workers, long runs and in-memory reconnects need a process that stays up.","how":"Run the CopilotKit Runtime as one long-lived Node process (`next start` serving `createCopilotRuntimeHandler`, or `createCopilotNodeListener`) whenever there's a Channels worker, Intelligence mode, or a run longer than a function limit.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"The choice and its reason are in the decisions above.","footnote":"Serverless functions work for request-scoped chat whose runs fit the limit; in-memory reconnects then don't cross instances."},{"id":"streaming","status":"todo","title":"SSE streams through the host","what":"The AG-UI event stream reaches the browser as it is produced.","why":"A buffering proxy or a short timeout turns a live agent into a long blank wait, or cuts the run off.","how":"The runtime streams AG-UI events over SSE and writes a keep-alive after 15 s of silence (`sseKeepAliveIntervalSeconds` on `CopilotRuntime`). Keep the host's request timeout above the longest run, and don't buffer `text/event-stream`.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"Through the public URL, the first reply appears token by token and the longest run finishes."},{"id":"bind-port","status":"todo","title":"Listens on 0.0.0.0 and $PORT","what":"The production start command binds every interface, on the port the host gives.","why":"A start script bound to `127.0.0.1` or a fixed port passes on a laptop and fails every health check on a host.","how":"The process serving `createCopilotRuntimeHandler` binds `0.0.0.0` and reads `$PORT`: `next start -H 0.0.0.0` for Next.js; for Express, Hono or Node, listen on `process.env.PORT` and `0.0.0.0`.","files":["package.json"],"doneWhen":"The start script does it, and a local production run answers on a non-default `PORT`."},{"id":"state-runner","status":"todo","title":"Runner and replicas match","what":"Where threads and runs live, and how many instances run.","why":"The default in-memory runner lives in one process: a restart clears it and replicas don't share it.","how":"Production: CopilotKit Intelligence (`intelligence: new CopilotKitIntelligence(...)` on `CopilotRuntime`, with `identifyUser`) keeps threads per user across restarts and replicas. A public demo: the default `InMemoryAgentRunner` on one instance.","links":[{"label":"Intelligence quickstart","href":"https://docs.copilotkit.ai/intelligence/quickstart"},{"label":"Thread lifecycle","href":"https://docs.copilotkit.ai/threads-lifecycle"}],"doneWhen":"The runner, the replica count and what a redeploy loses are written here.","footnote":"`@copilotkit/sqlite-runner` keeps threads in a SQLite file, on one instance with a volume."},{"id":"channels-worker","status":"todo","title":"Channels worker on a long-running process","what":"A Slack or Teams worker deployed as a process that stays up.","why":"A managed Channel holds an outbound realtime connection to Intelligence; a serverless function can't host it.","how":"The Channels SDK (`@copilotkit/channels-*`) on a long-lived Node 22+ process, with the runtime in Intelligence mode. Ready means `channels.status().detail[id].provider === \"attached\"` for each Channel, not just `overall === \"online\"`, which doesn't prove Slack or Teams is bound. Call `channels.stop()` on shutdown.","links":[{"label":"Slack: deploy and operate","href":"https://docs.copilotkit.ai/slack/deploy-and-operate"}],"doneWhen":"Each Channel's `detail[id].provider` reads `attached`, and a real message gets a reply."},{"id":"remote-agent","status":"todo","title":"Remote agent deployed and private","what":"An agent that runs as its own AG-UI service (LangGraph, CrewAI, ADK, Mastra).","why":"It is a second endpoint that runs your model. If it is public, sign-in on the runtime doesn't protect it.","how":"Register it in `CopilotRuntime`'s `agents` as an `HttpAgent` from `@ag-ui/client`, pointed at its AG-UI endpoint (LangGraph, Mastra, Google ADK, Pydantic AI through their AG-UI integrations). Keep that endpoint on the private network; the runtime forwards `authorization` and `x-*` headers to it (`forwardHeaders`).","links":[{"label":"AG-UI integration","href":"https://docs.copilotkit.ai/agentic-protocols/ag-ui"},{"label":"Self-managed agents","href":"https://docs.copilotkit.ai/backend/self-managed-agents"}],"doneWhen":"The agent's URL refuses requests that don't come through the runtime.","footnote":"If the agent's endpoint must be public, require a shared secret header and check it in the agent."}]},{"id":"connections","title":"Server-side connections (from /agent-context)","items":[{"id":"connections-inventory","status":"todo","title":"Every server-side connection placed","what":"Each row on rings 3 to 7 of the `/agent-context` map (server tools, MCP servers, Slack or Teams, OpenBot, Intelligence) gets its own item below.","why":"Those rows run on servers, not in the browser: each needs a host, a token, https and a health check before the copilot can use it in production.","how":"Read `docs/copilot/agent-context.html` (or its `.json`) with `node \u003cskill>/scripts/fill.mjs --context`: each row on rings 3 to 7 carries `runsOn`, `secretEnv` and `phase` (`v1` or `later`). One item per row, id `conn-\u003crow id>`: copy where it runs and its variable names, add https, any `gate.also`, and `TENANT_PACKAGE_DIR` for OpenBot. `later` rows are `na` unless this audience needs them. `defineTool` server tools ship with the runtime; `mcpServers` on `BuiltInAgent` need their MCP server hosted; the Channels SDK needs a long-lived worker.","links":[{"label":"Server tools","href":"https://docs.copilotkit.ai/server-tools"},{"label":"MCP servers","href":"https://docs.copilotkit.ai/mcp-servers"}],"files":["docs/copilot/agent-context.html"],"doneWhen":"Every rings-3-to-7 row has an item here, and each says where it runs and how it authenticates."}]},{"id":"host","title":"Host and config","items":[{"id":"host-choice","status":"todo","title":"Host chosen","what":"Vercel, Railway, Render, or Docker on a container platform.","why":"The host decides timeouts, replicas, variables, previews and rollback.","how":"Pick by how the CopilotKit Runtime runs: a long-lived `createCopilotRuntimeHandler` process (Railway, Render, a container) by default; Vercel for a Next.js runtime route with short runs and no Channels worker.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"The host is in the decisions, with its reason."},{"id":"build-start","status":"todo","title":"Build and start commands, Node pinned","what":"The exact commands the host runs, and the Node version.","why":"Hosts guess when you don't say, and a wrong Node version fails at start, not at build.","how":"`npm ci && npm run build`, then the public start script, with `@copilotkit/react-core` and `@copilotkit/runtime` pinned together to one exact version, as the starters do. Pin Node with `\"engines\": { \"node\": \">=22.12\" }`.","files":["package.json"],"doneWhen":"A clean install, build and start run locally with `NODE_ENV=production` and a non-default `PORT`.","footnote":"The host's own Node version setting instead of `engines`."},{"id":"upload-ignore","status":"todo","title":"Env files stay out of the upload","what":"An ignore file for whatever uploads the code: `.dockerignore`, `.railwayignore` or `.vercelignore`.","why":"An env file in an image or an upload is a leaked key. Build output and `node_modules` slow every deploy.","how":"Keep the files that hold `BuiltInAgent`'s model key and `CPK_INTELLIGENCE_API_KEY` out of the upload: `.dockerignore`, `.railwayignore` or `.vercelignore` with `.env*` (keep `!.env.example`), `node_modules`, build output and `.claude` (symlinked skills break the build). Outside a git repo, don't rely on `.gitignore`.","files":[".dockerignore"],"doneWhen":"The ignore file exists and lists `.env*`."},{"id":"host-config","status":"todo","title":"Health path, replicas and memory set","what":"The host's settings for the service.","why":"Defaults (several replicas, little memory, no health check) break the in-memory runner or kill instances.","how":"Health path `GET {basePath}/info` from `createCopilotRuntimeHandler` (no model call); one replica while `InMemoryAgentRunner` holds the runs; memory for its retained history (about 512 MB by default) plus the app.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"The settings match the decisions.","footnote":"Where to set it: Railway's service settings or `.railway/railway.ts` (`railway.json` is deprecated), `render.yaml`, or a Dockerfile `HEALTHCHECK`. See the snippets."}]},{"id":"env","title":"Environment and secrets","items":[{"id":"env-inventory","status":"todo","title":"Every variable named, per environment","what":"The table above: every variable the server reads, and where its value comes from in each environment.","why":"A missing variable fails at the first chat, not at deploy; a stray one can switch on something you didn't mean to.","how":"List what the CopilotKit Runtime's server reads: the model key `BuiltInAgent` resolves (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY` or `GOOGLE_API_KEY`), `CPK_INTELLIGENCE_API_KEY` for `CopilotKitIntelligence`, `COPILOTKIT_TELEMETRY_DISABLED`, and the app's own (`grep -rhoE \"env\\.[A-Z][A-Z0-9_]+\"`). Names only. Check that your app's model switch reads the key for your provider, the name the runtime's `resolveModel` reads: Open Harvey's `chooseModel` does (`keyFor`); the headcount starter's `copilotModel` checks only `OPENAI_API_KEY`.","files":[".env.example"],"doneWhen":"Every name the code reads is in the table, and `.env.example` lists them without values."},{"id":"no-secrets-in-build","status":"todo","title":"No secret in the repo, the image or the browser","what":"Keys live only in the host's variable store.","why":"A key in git history, an image layer or the client bundle is public for good.","how":"The browser gets only `runtimeUrl` on `CopilotKitProvider`; every key stays on the `CopilotRuntime` server. No key behind a `NEXT_PUBLIC_` or `VITE_` prefix, no `COPY .env`, no key in a build `ARG`.","links":[{"label":"Authentication","href":"https://docs.copilotkit.ai/auth"}],"doneWhen":"The ignore file covers env files, and no key variable is read in client code."},{"id":"keys-per-env","status":"todo","title":"Separate keys per environment","what":"Its own model key and Intelligence key for local, staging and production.","why":"A leak or a runaway loop in one environment can't spend another's budget, and rotating one key doesn't take everything down.","how":"One CopilotKit Intelligence project per environment (its own `CPK_INTELLIGENCE_API_KEY` and Learning Space), and one model-provider project per environment for `BuiltInAgent`'s key.","links":[{"label":"Intelligence","href":"https://docs.copilotkit.ai/intelligence/overview"}],"doneWhen":"The table shows a different source for each environment's keys."},{"id":"telemetry","status":"todo","title":"Telemetry choice made","what":"Whether the CopilotKit runtime sends usage telemetry from this deploy.","why":"It is on by default and can include error messages from failed runs.","how":"`COPILOTKIT_TELEMETRY_DISABLED=true` (or `DO_NOT_TRACK=1`) turns off the CopilotKit runtime's telemetry.","links":[{"label":"Copilot Runtime","href":"https://docs.copilotkit.ai/backend/copilot-runtime"}],"doneWhen":"The choice is in the variables table."}]},{"id":"mock","title":"Mock mode","items":[{"id":"mock-default-prod","status":"todo","title":"Production runs a scripted mock unless allowed","what":"A stand-in model that plays the demo, chosen by default in a production build.","why":"A deploy someone forgot to protect then costs nothing, even if a key was set by mistake.","how":"Pass a scripted `LanguageModelV3` as `BuiltInAgent`'s `model` in a production build unless an explicit flag allows the real one. Open Harvey: `chooseModel` and `ALLOW_REAL_MODEL=true`.","files":["starters/open-harvey/src/lib/server-data.ts","starters/open-harvey/src/lib/mock-model.ts"],"doneWhen":"A test shows that a key in production without the flag still runs the mock."},{"id":"mock-visible","status":"todo","title":"The app and the log say which model runs","what":"A visible model label and one log line with the reason.","why":"A presenter, a tester and whoever is on call each need to know in a second whether it's the mock.","how":"Show which model `BuiltInAgent` got in the app (Open Harvey's rail: *model: mock · scripted demo*) and log it, with the reason, once.","files":["starters/open-harvey/src/lib/server-data.ts"],"doneWhen":"Both show on a local production run."},{"id":"mock-tested","status":"todo","title":"The demo plays end to end on the mock","what":"A test that runs the whole demo script against the mock with the real tool handlers.","why":"It proves the tools, cards, gates and store with no key and no network, before and after every deploy.","how":"A test that plays the demo script against the mock with the same tool handlers the app registers through `useFrontendTool` and `useHumanInTheLoop`, like Open Harvey's `demo-script.test.ts`.","files":["starters/open-harvey/src/lib/demo-script.test.ts"],"doneWhen":"`npm test` passes it."}]},{"id":"auth","title":"Sign-in, scope and data","items":[{"id":"spec-scope","status":"todo","title":"This deploy fits the approved spec","what":"Who will use it, on whose data, with which model, compared with the approved spec's v1 and its out-of-scope list.","why":"A pilot with real approvers needs sign-in, a server store and the real model; if the spec left them out, deploying anyway ships a demo to people who will treat it as real.","how":"Read `docs/copilot/copilot-spec.md`. If the request needs what it ruled out, mark this blocked, name each missing piece (sign-in with `identifyUser`, a server store, the real model on `BuiltInAgent`), and send it back to `/functional-copilot` for a spec change and a build. A spec's data decisions (Intelligence off, the real model off until agreed) win over this skill's defaults.","footnote":"The narrower deploy the spec supports (a rehearsal, a drafting pilot) can go ahead meanwhile.","files":["docs/copilot/copilot-spec.md"],"doneWhen":"The audience, data and model match the spec, or the spec has been changed and built to match."},{"id":"auth-gate","status":"todo","title":"Sign-in in front of the runtime endpoint","what":"No request reaches the agent without a signed-in user.","why":"Without it, anyone with the URL runs your model on your bill, calls every tool the agent has, and reads whatever data the page and the agent serve, even on the mock.","how":"Sign people in with your identity provider, send the token on every runtime call with `CopilotKitProvider`'s `headers`, and refuse unsigned calls in `hooks.onRequest` on `createCopilotRuntimeHandler` (throw a 401 `Response`).","links":[{"label":"Authentication","href":"https://docs.copilotkit.ai/auth"}],"doneWhen":"Without a session, `POST {basePath}/agent/\u003cid>/run` gets 401 or a sign-in redirect, never a stream.","footnote":"An SSO proxy or the host's access protection in front of the whole app adds a layer; keep the runtime check as well."},{"id":"shared-state","status":"todo","title":"Shared state lives on the server, keyed by user","what":"Anything more than one person relies on (requests, reviews, approvals) is stored on the server per signed-in user, and approvals are checked there.","why":"The starters keep state in each browser's localStorage and let one person act as every approver. Fine for a demo; on a shared deployment, nobody else sees the work and anyone can approve as anyone.","how":"Move state to a server store keyed by user, resolve the user with `identifyUser(request)` on `CopilotRuntime`, and enforce each approval on the server against that user, not a name the browser sends. CopilotKit Intelligence keeps the threads per user.","links":[{"label":"Authentication","href":"https://docs.copilotkit.ai/auth"},{"label":"Thread lifecycle","href":"https://docs.copilotkit.ai/threads-lifecycle"}],"doneWhen":"Two signed-in people see the same request, and only the named approver's approval counts, checked by a server test."},{"id":"identify-user","status":"todo","title":"The runtime knows who is asking","what":"`identifyUser` on `CopilotRuntime` returns the signed-in user's id and name, resolved on the server.","why":"Threads, approvals and learning are per person, and a user id sent by the browser can be forged.","how":"`identifyUser: async (request) => ({ id, name })` on `CopilotRuntime`, from the verified session. Required in Intelligence mode, where CopilotKit Intelligence keeps each user's threads and memory apart.","links":[{"label":"Authentication: thread authorization","href":"https://docs.copilotkit.ai/auth"}],"doneWhen":"Two signed-in users each see only their own threads."},{"id":"thread-access","status":"todo","title":"Threads can't be listed or read by others","what":"Thread routes refuse callers who don't own the thread.","why":"Thread history holds the work people did with the copilot.","how":"Keep `threads.access` on `CopilotRuntime` at its default, `\"owner\"`: listing and clearing need an identity (403 without one); never `\"open\"` where more than one person can reach it. In Intelligence mode, guard the routes the docs list as unscoped in `hooks.onBeforeHandler`.","links":[{"label":"Authentication","href":"https://docs.copilotkit.ai/auth"}],"doneWhen":"`GET {basePath}/threads` without identity returns 403 (401 once sign-in is in front)."},{"id":"real-model-gate","status":"todo","title":"The real model only behind sign-in","what":"An environment gets a model key only when sign-in sits in front of it.","why":"The mock removes the cost of an open endpoint, not the exposure.","how":"Give `BuiltInAgent` the real model only on an environment where `hooks.onRequest` refuses unsigned calls; everywhere else it gets the mock.","links":[{"label":"Authentication","href":"https://docs.copilotkit.ai/auth"}],"doneWhen":"The variables table shows no model key on any public environment."},{"id":"model-provider-data","status":"todo","title":"The data owner agreed to what goes to the model provider","what":"Every run sends the provider of `BuiltInAgent`'s model the context, the conversation and the tool results.","why":"On a real model, contract text, people's pay or customers' records leave the company with each message.","how":"Name the provider and what each run sends (`useAgentContext`, messages, tool results). Get the data owner's yes (Legal and Security, or HR) and check the provider account's data terms before `ALLOW_REAL_MODEL=true` or a key goes on any environment. `COPILOTKIT_TELEMETRY_DISABLED=true` turns off the second flow, the runtime's telemetry. If `/agent-context` has a model-provider row, use its `secretEnv` and gates.","links":[{"label":"Copilot Runtime","href":"https://docs.copilotkit.ai/backend/copilot-runtime"}],"doneWhen":"Who agreed, and when, is written here before any environment gets a key."},{"id":"preview-protection","status":"todo","title":"Staging and preview URLs protected","what":"Non-production URLs need sign-in too, or run only the mock.","why":"Preview and staging URLs are often reachable by anyone who has the link, and they often carry staging keys.","how":"The same `hooks.onRequest` gate on staging and previews, or the mock `model` on `BuiltInAgent` there.","links":[{"label":"Authentication","href":"https://docs.copilotkit.ai/auth"}],"doneWhen":"A preview URL opened in a private window asks for sign-in or shows the mock label.","footnote":"The host's deployment protection on previews."}]},{"id":"protect","title":"Protection: rate limits, spend caps, allowed origins","items":[{"id":"rate-limit","status":"todo","title":"Rate limits on agent runs","what":"A cap on runs per user, or per IP on a public demo.","why":"Every run costs CPU, and on a real model money. One script can start thousands.","how":"In `hooks.onBeforeHandler` on `createCopilotRuntimeHandler`, count `route.method === \"agent/run\"` per user (or per IP on a public demo) and throw a 429 `Response` over the limit. Use a shared store when there's more than one instance.","links":[{"label":"Lifecycle hooks","href":"https://docs.copilotkit.ai/runtime-server-adapter#lifecycle-hooks"}],"doneWhen":"A burst above the limit gets 429 and a readable message.","footnote":"A CDN or WAF rate-limit rule in front of the host."},{"id":"spend-caps","status":"todo","title":"Spend caps at the provider and the host","what":"A monthly budget or usage limit on the model provider's project and on the host, with an alert below each.","why":"A cap still works when every other control has failed.","how":"Bound what CopilotKit spends first (`maxSteps` and the model id on `BuiltInAgent`, per environment), watch usage in CopilotKit Intelligence analytics, then cap the bills: a budget on the model provider's project and a usage limit on the host (Railway: `railway usage limit`). You pick the numbers.","links":[{"label":"Product analytics","href":"https://docs.copilotkit.ai/intelligence/analytics"}],"doneWhen":"Both caps are set and their numbers are written here."},{"id":"run-bounds","status":"todo","title":"Each run is bounded","what":"Limits on how much one run can do.","why":"A loop of tool calls on a real model is a bill and a slow screen.","how":"`maxSteps` on `BuiltInAgent`: set it to the minimum the flow needs, 2 or more with server tools or MCP tools. It defaults to 1 (10 only when learned skills are loaded), so a run that calls a server tool otherwise ends at the tool result with no reply. Then a model sized for the job and a lean prompt.","links":[{"label":"Copilot Runtime","href":"https://docs.copilotkit.ai/backend/copilot-runtime"}],"doneWhen":"`maxSteps` is set on purpose, the longest demo run finishes with a reply, and stays under it."},{"id":"origins","status":"todo","title":"Allowed origins set","what":"Which websites' scripts may call the runtime from a browser.","why":"A wildcard lets any page drive your agent from a visitor's browser.","how":"Same origin: leave `cors` unset on `createCopilotRuntimeHandler`. Different origins: `cors: { origin: [\"https://app.example.com\"], credentials: true }`. Never `cors: true` with a real model.","links":[{"label":"CORS configuration","href":"https://docs.copilotkit.ai/runtime-server-adapter#cors-configuration"}],"doneWhen":"The runtime sends no CORS headers (same origin), or only the listed origins."}]},{"id":"ops","title":"Operations: health, logs, traces, staging, rollback","items":[{"id":"health","status":"todo","title":"Health check answers without calling the model","what":"A path the host checks before routing traffic, and while it runs.","why":"Without it, a broken deploy takes traffic and a hung instance never restarts.","how":"`GET {basePath}/info` from `createCopilotRuntimeHandler` (runtime loaded, agents registered, no model call) while there's no sign-in; a separate `/api/health` route outside the runtime once `hooks.onRequest` refuses unsigned calls.","links":[{"label":"Endpoint modes","href":"https://docs.copilotkit.ai/runtime-server-adapter#multi-route-vs-single-route"}],"doneWhen":"The host shows the check passing on the new deploy."},{"id":"logs","status":"todo","title":"Logs found, readable and clean","what":"Where the logs are, and what they say.","why":"The first sign of trouble during a live demo is in the log.","how":"Log from the runtime's `hooks`: `onResponse` for status and timing, `onError` for failures, with the user id from `identifyUser` (never a token). Read them with the host's log command (`railway logs`, `vercel logs`, `docker logs`).","links":[{"label":"Lifecycle hooks","href":"https://docs.copilotkit.ai/runtime-server-adapter#lifecycle-hooks"}],"doneWhen":"You've read one deploy's logs: the model line is there and no secret is.","footnote":"`debug` on `CopilotRuntime` is for local investigation, not production traffic."},{"id":"traces","status":"todo","title":"Traces and learning wired as decided","what":"Per-request timing, per-conversation history, per-call cost.","why":"You can't improve or debug what you can't see.","how":"CopilotKit Intelligence: threads, memory, analytics and insights, and Automatic Learning (a Learning Space per environment, skills a person publishes). Trajectories through `@copilotkit/learning` are off on hosted Intelligence today, so don't plan on them yet.","links":[{"label":"Intelligence","href":"https://docs.copilotkit.ai/intelligence/overview"},{"label":"Automatic Learning","href":"https://docs.copilotkit.ai/learning"},{"label":"Product analytics","href":"https://docs.copilotkit.ai/intelligence/analytics"}],"doneWhen":"The decision (on or off, and where) is written here, and if on, a run shows up.","footnote":"`afterRequestMiddleware` on `CopilotRuntime` hands you each run's messages for a store of your own."},{"id":"staging","status":"todo","title":"Staging before production","what":"The same build, start and health check as production, with its own variables and URL.","why":"The first deploy of a change should not be the one your users see.","how":"The same build and `CopilotRuntime` config as production, with its own `CPK_INTELLIGENCE_API_KEY`, Learning Space and model key. Deploy, smoke-test, then promote the same commit. Railway: `railway environment new staging --duplicate production`.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"Staging exists and the smoke test passed there."},{"id":"rollback","status":"todo","title":"Rollback known and tried","what":"How to put the previous deploy back.","why":"The middle of an incident is the wrong time to learn it.","how":"Roll back the app and the CopilotKit Runtime together: `@copilotkit/react-core` and `@copilotkit/runtime` ship in one build, so the previous deploy restores both. Vercel: `vercel rollback`. Railway and Render: redeploy an earlier deployment. Docker: the previous image tag.","links":[{"label":"Runtime deployment","href":"https://docs.copilotkit.ai/runtime-server-adapter"}],"doneWhen":"You have rolled staging back once."},{"id":"inspector","status":"todo","title":"Web inspector for local checks, off in production","what":"The CopilotKit web inspector (`@copilotkit/web-inspector`) shows each run's AG-UI events in the browser.","why":"Watching one run's events locally is the fastest way to tell a host problem from an agent problem.","how":"It is on by default in development on localhost and always off on remote hosts and in production builds; `enableInspector` on `CopilotKitProvider` turns it off locally too.","files":["node_modules/@copilotkit/web-inspector"],"doneWhen":"You've watched one full run's events locally, and the deployed page shows no inspector."}]},{"id":"smoke","title":"Smoke test after the deploy","items":[{"id":"smoke-reads","status":"todo","title":"Reads against the public URL","what":"`curl` checks that change nothing.","why":"They catch a wrong start command, a missing agent or an open thread list in seconds.","how":"`/` returns 200; `{basePath}/info` returns 200 with the CopilotKit version, the agents and the mode; `{basePath}/threads` returns 403 (401 behind sign-in).","cmd":"curl -s $URL/api/copilotkit/info","links":[{"label":"Endpoint modes","href":"https://docs.copilotkit.ai/runtime-server-adapter#multi-route-vs-single-route"}],"doneWhen":"Each returns the expected code."},{"id":"smoke-flows","status":"todo","title":"The key user flows, clicked","what":"The function's demo script, start to finish, in a browser on the deployed URL.","why":"It is the only check that proves the cards, the gates and streaming work through the host.","how":"Click the spec's demo script on the deployed URL: replies stream, every `useHumanInTheLoop` gate refuses before its approval, every `useComponent` card renders, and `useFrontendTool` tools change the app.","files":["docs/copilot/copilot-spec.md"],"doneWhen":"Every step behaves as it did on the laptop."},{"id":"smoke-logs","status":"todo","title":"Server side clean after the flows","what":"The logs from the smoke test.","why":"Errors the UI swallowed show up here.","how":"Read the runtime's logs right after the flows: the model line, any `hooks.onError` entries, no secrets.","links":[{"label":"Lifecycle hooks","href":"https://docs.copilotkit.ai/runtime-server-adapter#lifecycle-hooks"}],"doneWhen":"The expected model line, no errors, no secrets."}]},{"id":"golive","title":"Go live: the steps that wait for your yes","items":[{"id":"golive-project","status":"ask","needsYes":true,"title":"Host account and project","what":"Sign in to the host and create or link the project.","why":"It creates an account or a billable project in your name.","how":"Railway: `railway init` or `railway link`. Vercel: the first `vercel` run. Render: a Blueprint from the dashboard. If Intelligence is on: the environment's project and Learning Space in the CopilotKit Intelligence dashboard.","doneWhen":"You said yes and the project exists.","evidence":"Your yes to the host and the project name."},{"id":"golive-vars","status":"ask","needsYes":true,"title":"Variables set on the host","what":"The variables from the table, in each environment.","why":"Production secrets are yours to set.","how":"`railway variable set NAME --stdin -e \u003cenvironment>`, `vercel env add NAME production`, or Render's `sync: false` prompt.","doneWhen":"The host's variable names match the table.","evidence":"Your yes, and you pasting each value."},{"id":"golive-deploy","status":"ask","needsYes":true,"title":"Deploy","what":"Upload and start the build.","why":"It puts the copilot on the internet.","how":"`railway up --service \u003cservice> -e \u003cenvironment>`, `vercel deploy --prod`, or push the image and deploy it on your platform.","doneWhen":"The host shows the deploy healthy.","evidence":"Your yes to the deploy command."},{"id":"golive-share","status":"ask","needsYes":true,"title":"Domain and sharing","what":"The public URL, and who gets it.","why":"Once shared, a link is hard to take back.","how":"`railway domain --service \u003cservice> -e \u003cenvironment>`, the Vercel project's domains, or your platform's domain settings.","doneWhen":"The smoke test passed on that URL before it was shared.","evidence":"Your yes to the domain and the audience."}]}],"snippets":[],"notVerified":["Template: nothing has been checked yet."],"next":"Next: `/secure-governance`, to decide roles, approvals, audit and data rules before production use.","headline":"Template: one sentence on whether it can go live today, and what stops it.","blockers":["spec-scope","auth-gate","shared-state","upload-ignore"]}</script>
+<style>
+:root {
+  --paper: #f6f5f1; --surface: #ffffff; --stone: #edebe6; --ink: #141310; --ink-soft: #2d2b27;
+  --muted: #65615a; --hairline: #e2dfd8; --rule: #cbc7be; --on-ink: #ffffff;
+  --serif: "Iowan Old Style", "Source Serif 4", Charter, Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121110; --surface: #1b1a18; --stone: #252421; --ink: #f0eee9; --ink-soft: #d8d5ce;
+    --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c; --on-ink: #121110; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121110; --surface: #1b1a18; --stone: #252421; --ink: #f0eee9; --ink-soft: #d8d5ce;
+  --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c; --on-ink: #121110; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 28px 16px 64px; }
+a { color: inherit; text-underline-offset: 2px; }
+code, pre, kbd { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--stone); border-radius: 4px; padding: 0.08em 0.32em; overflow-wrap: anywhere; }
+pre code { background: none; padding: 0; border-radius: 0; overflow-wrap: normal; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); line-height: 1.1; }
+h2 { font-size: 23px; line-height: 1.25; }
+h3 { font-size: 17px; line-height: 1.3; font-family: var(--sans); font-weight: 600; letter-spacing: 0; }
+button { font: inherit; color: inherit; }
+.eyebrow { font: 600 12px/1.4 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* Header */
+header.top { border-bottom: 1px solid var(--rule); padding-bottom: 20px; margin-bottom: 24px; }
+header.top .eyebrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; align-items: baseline; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 16px; font-size: 13px; }
+.meta div { display: flex; gap: 6px; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; font-weight: 600; }
+.crumb { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.crumb .root { font: 600 12px/1.4 var(--mono); letter-spacing: 0.02em; }
+.crumb strong { color: var(--ink); }
+.flow .step b { font-weight: 700; margin-right: 6px; }
+.flow li.learn span { border-style: dashed; }
+header.top h1 { margin: 18px 0 8px; font-size: clamp(26px, 5.2vw, 38px); line-height: 1.15; }
+header.top p.meta { margin: 0; font-size: 13px; color: var(--muted); }
+.blockers { border: 2px solid var(--ink); border-radius: 12px; background: var(--surface); padding: 14px 16px; margin: 0 0 22px; }
+.blockers h2 { font-size: 19px; margin: 0 0 8px; }
+.blockers ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.blockers li { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.blockers a { font-weight: 600; text-decoration-thickness: 1px; }
+.slabel.inline { display: inline; margin: 0; white-space: nowrap; }
+.disclaimer { font-style: italic; }
+@media (max-width: 600px) { .blockers li { grid-template-columns: auto minmax(0, 1fr); } .blockers li .slabel.inline { display: none; } }
+.flow { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font: 500 13px/1 var(--mono); }
+.flow li { display: flex; align-items: center; gap: 6px; }
+.flow li + li::before { content: "›"; color: var(--muted); font-family: var(--sans); }
+.flow span { border: 1px solid var(--rule); border-radius: 999px; padding: 6px 10px; color: var(--muted); font-family: var(--sans); font-size: 12.5px; display: inline-flex; align-items: baseline; }
+.flow li[aria-current] span { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }
+
+/* Toolbar */
+.toolbar { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--hairline); padding: 10px 0; margin: 0 0 22px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.progress { display: flex; align-items: center; gap: 10px; flex: 1 1 240px; font-size: 13px; }
+.bar { flex: 1; height: 8px; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; min-width: 80px; }
+.bar i { -webkit-print-color-adjust: exact; print-color-adjust: exact; display: block; height: 100%; background: var(--ink); width: 0; transition: width .2s; }
+.filters, .actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 5px 11px; font-size: 13px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); font-weight: 600; }
+.chip:focus-visible, .toggle:focus-visible, .copy:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Blocks */
+section.block { margin: 0 0 30px; }
+section.block > h2 { margin-bottom: 12px; }
+.summary { font: 400 18px/1.5 var(--serif); margin: 0 0 16px; }
+.decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 10px; margin: 0; }
+.decisions div { border: 1px solid var(--rule); background: var(--surface); border-radius: 10px; padding: 10px 12px; }
+.decisions dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.decisions dd { margin: 4px 0 0; font-weight: 600; }
+.assumed { display: inline-block; margin-left: 6px; border: 1px dashed var(--ink); border-radius: 999px; padding: 0 7px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.counts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.counts li { display: flex; align-items: center; gap: 6px; }
+
+/* Status glyphs: shape, fill and weight only */
+.glyph { -webkit-print-color-adjust: exact; print-color-adjust: exact; position: relative; flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--ink); display: inline-block; }
+.glyph.done { background: var(--ink); }
+.glyph.done::after { content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px; border: solid var(--on-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.glyph.ask { border-style: dashed; }
+.glyph.blocked { border-width: 3px; }
+.glyph.blocked::after { content: ""; position: absolute; left: 50%; top: -1px; width: 2.5px; height: 12px; margin-left: -1.25px; background: var(--ink); transform: rotate(45deg); }
+.glyph.na { width: 8px; height: 8px; margin: 4px; border: 0; background: var(--muted); }
+
+/* Tables */
+table.env { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+table.env th, table.env td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--hairline); }
+table.env th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--stone); }
+table.env td.name code { font-weight: 700; background: none; padding: 0; overflow-wrap: normal; }
+.secret { display: inline-block; border: 1.5px solid var(--ink); border-radius: 4px; padding: 0 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Commands and snippets */
+.cmds { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.cmd { border: 1px solid var(--rule); background: var(--surface); border-radius: 10px; padding: 10px 12px; }
+.cmd.yes { border: 2px solid var(--ink); }
+.cmd-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 13px; font-weight: 600; }
+.yes-tag { border: 1.5px solid var(--ink); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.code { position: relative; margin: 8px 0 0; min-width: 0; }
+.code pre { margin: 0; background: var(--stone); border-radius: 8px; padding: 10px 64px 10px 12px; overflow-x: auto; white-space: pre; line-height: 1.5; }
+.copy { position: absolute; top: 6px; right: 6px; border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; font-size: 12px; padding: 3px 8px; cursor: pointer; }
+.cmd .note { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.snippet { margin: 0 0 14px; }
+.snippet h3 { font-size: 15px; }
+
+/* Items */
+.items { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.item { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; }
+.item[data-status="ask"] { border-style: dashed; border-color: var(--ink); }
+.item[data-status="blocked"] { border-width: 2px; border-color: var(--ink); }
+.item[data-status="na"] { background: transparent; }
+.item[data-status="na"] .item-head h3 { color: var(--muted); font-weight: 500; }
+.item.ticked .item-head h3 { font-weight: 500; }
+.item-head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; }
+.item-head input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.item-head h3 { min-width: 0; }
+.item-head h3 label { cursor: pointer; }
+.slabel { display: block; font: 600 11px/1.3 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
+.toggle { border: 0; background: none; padding: 4px 6px; cursor: pointer; font-size: 13px; color: var(--muted); border-radius: 6px; }
+.toggle::after { content: " ▸"; }
+.toggle[aria-expanded="true"]::after { content: " ▾"; }
+.item-body { padding: 0 12px 12px 40px; }
+.item-body[hidden] { display: none; }
+.item-body dl { margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 12px; }
+.item-body dt { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding-top: 2px; }
+.item-body dd { margin: 0; }
+.item-body dd.evidence { border-left: 3px solid var(--ink); padding-left: 10px; }
+.item[data-status="ask"] dd.evidence { border-left-style: dashed; }
+.footnote { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.fn-label { font-weight: 600; }
+.refs { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: 13px; }
+.needs-yes { margin-left: 6px; }
+.item.hidden-by-filter, section.block.empty-by-filter { display: none; }
+
+.notv { margin: 0; padding-left: 20px; }
+.notv li { margin: 0 0 4px; }
+footer.end { border-top: 1px solid var(--rule); padding-top: 14px; font-size: 13px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; margin: 0 0 6px; padding: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.err { border: 2px solid var(--ink); border-radius: 10px; padding: 14px; background: var(--surface); }
+
+@media (max-width: 600px) {
+  body { font-size: 15px; }
+  .item-head { grid-template-columns: auto auto minmax(0, 1fr); }
+  .item-head .toggle { grid-column: 3; justify-self: start; padding-left: 0; }
+  .item-body { padding-left: 12px; }
+  .item-body dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .item-body dd { margin-bottom: 8px; }
+  table.env thead { display: none; }
+  table.env, table.env tbody, table.env tr, table.env td { display: block; width: 100%; }
+  table.env tr { border-bottom: 1px solid var(--rule); padding: 6px 0; }
+  table.env td { border: 0; padding: 3px 10px; }
+  table.env td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .toolbar { position: static; }
+}
+@media print {
+  :root { --paper: #fff; --surface: #fff; --stone: #f1f0ec; --ink: #000; --muted: #444; --rule: #999; --hairline: #ccc; --on-ink: #fff; }
+  body { font-size: 11pt; background: #fff; }
+  .wrap { max-width: none; padding: 0; }
+  .toolbar .filters, .toolbar .actions, .copy, .toggle { display: none !important; }
+  .toolbar { position: static; border: 0; padding: 0; }
+  .item-body[hidden] { display: block !important; }
+  .item.hidden-by-filter, section.block.empty-by-filter { display: block !important; }
+  .item, .cmd, .snippet, .decisions div { break-inside: avoid; }
+  .code pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .refs a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: var(--muted); }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <noscript><p class="err">This checklist is drawn by a small script inside the file. Turn JavaScript on to see it; nothing is loaded from the network.</p></noscript>
+</div>
+<script>
+(function () {
+  "use strict";
+  // /functional-copilot is the root of the suite; the other skills are its numbered steps.
+  var STEPS = [["1", "Research", "user-map"], ["2", "Context & access", "agent-context"], ["3", "Spec & build", "functional-copilot"], ["4", "Deploy", "deploy"], ["5", "Secure & govern", "secure-governance"]];
+  var STATUS = {
+    done: { label: "Done", evidence: "Evidence" },
+    todo: { label: "To do", evidence: "Note" },
+    ask: { label: "Your call", evidence: "Decision needed" },
+    blocked: { label: "Blocked", evidence: "Waiting on" },
+    na: { label: "Doesn't apply", evidence: "Why not" }
+  };
+  var root = document.getElementById("app");
+  var data;
+  try { data = JSON.parse(document.getElementById("checklist-data").textContent || "{}"); }
+  catch (e) { root.innerHTML = '<p class="err">The checklist data in this file is not valid JSON. Run <code>node skills/deploy/scripts/fill.mjs</code> to rebuild it.</p>'; return; }
+  if (!data || !Array.isArray(data.sections)) { root.innerHTML = '<p class="err">No checklist data yet. The <code>/deploy</code> skill fills this page with <code>skills/deploy/scripts/fill.mjs</code>.</p>'; return; }
+
+  // ---- storage: the developer's ticks and theme. Optional: the page works without it.
+  var slug = String(data.app || "app").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  var KEY = "copilot-skills:" + (data.skill || "deploy") + ":" + slug;
+  var THEME_KEY = "copilot-skills:theme";
+  function load(key, fallback) { try { var v = window.localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
+  function save(key, value) { try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private window or blocked storage: keep going */ } }
+  var state = load(KEY, { ticks: {} }); if (!state || typeof state.ticks !== "object") state = { ticks: {} };
+
+  // ---- tiny DOM helpers (text only: data never becomes HTML)
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (attrs[k] == null || attrs[k] === false) continue;
+      if (k === "class") n.className = attrs[k]; else if (k === "text") n.textContent = attrs[k]; else n.setAttribute(k, attrs[k] === true ? "" : attrs[k]);
+    }
+    (kids || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function rich(text) { // `code` spans; everything else is plain text
+    var frag = document.createDocumentFragment();
+    String(text == null ? "" : text).split("`").forEach(function (part, i) {
+      if (!part) return;
+      frag.appendChild(i % 2 ? el("code", { text: part }) : document.createTextNode(part));
+    });
+    return frag;
+  }
+  function richEl(tag, attrs, text) { var n = el(tag, attrs); n.appendChild(rich(text)); return n; }
+  function glyph(status) { return el("span", { class: "glyph " + status, "aria-hidden": "true" }); }
+  function copyButton(text) {
+    var b = el("button", { class: "copy", type: "button", text: "Copy" });
+    b.addEventListener("click", function () {
+      function done(ok) { b.textContent = ok ? "Copied" : "Select"; setTimeout(function () { b.textContent = "Copy"; }, 1400); }
+      try { navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); }); } catch (e) { done(false); }
+    });
+    return b;
+  }
+  function codeBlock(text) { return el("div", { class: "code" }, [el("pre", {}, [el("code", { text: text })]), copyButton(text)]); }
+
+  // ---- theme: follows the system until the developer picks one
+  var themes = ["auto", "light", "dark"];
+  var theme = load(THEME_KEY, "auto"); if (themes.indexOf(theme) < 0) theme = "auto";
+  function applyTheme() { if (theme === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", theme); }
+  applyTheme();
+
+  document.title = "Deploy · " + (data.app || "your app");
+  root.textContent = "";
+
+  // ---- header: root label, numbered steps, one headline, one meta line
+  var current = data.skill || "deploy";
+  var cur = STEPS.filter(function (x) { return x[2] === current; })[0] || STEPS[3];
+  var strip = el("ol", { class: "flow", "aria-label": "Steps of /functional-copilot" }, STEPS.map(function (x) {
+    return el("li", { "aria-current": x[2] === current ? "step" : null }, [el("span", { class: "step", title: "/" + x[2] }, [el("b", { text: x[0] }), document.createTextNode(x[1])])]);
+  }).concat([el("li", { class: "learn" }, [el("span", { class: "step", title: "Learning runs through CopilotKit Intelligence: real threads and corrections become skills a person publishes" }, [document.createTextNode("Learn · Intelligence")])])]));
+  var meta = [data["function"], data.app, data.date, data.repo].filter(Boolean).join(" · ");
+  root.appendChild(el("header", { class: "top" }, [
+    el("p", { class: "crumb" }, [el("span", { class: "root", text: "functional-copilot" }), document.createTextNode(" › "), el("strong", { text: cur[0] + " " + cur[1] }), document.createTextNode(" · "), el("code", { text: "/" + current })]),
+    strip,
+    richEl("h1", {}, data.headline || "Deploy checklist"),
+    el("p", { class: "meta", text: meta })
+  ]));
+
+  // ---- the few items that block the deploy, at the top; everything else is detail below
+  var byId = {};
+  data.sections.forEach(function (sec) { (sec.items || []).forEach(function (it) { byId[it.id] = { item: it, section: sec.id }; }); });
+  var blockers = (data.blockers || []).filter(function (id) { return byId[id]; });
+  if (blockers.length) {
+    root.appendChild(el("section", { class: "blockers", "aria-labelledby": "h-block" }, [
+      el("h2", { id: "h-block", text: "Before it goes live" }),
+      el("ol", {}, blockers.map(function (id) {
+        var hit = byId[id], st = STATUS[hit.item.status] ? hit.item.status : "todo";
+        var a = el("a", { href: "#i-" + hit.section + "--" + id, text: hit.item.title });
+        a.addEventListener("click", function () { openItem(hit.section + "--" + id); });
+        return el("li", {}, [glyph(st), el("span", { class: "slabel inline", text: STATUS[st].label + (hit.item.needsYes ? " · needs your yes" : "") }), a]);
+      }))
+    ]));
+  }
+
+  // ---- toolbar
+  var allItems = [];
+  data.sections.forEach(function (s) { (s.items || []).forEach(function (it) { allItems.push(it); }); });
+  var bar = el("i"), progressText = el("span");
+  var filter = "all";
+  var filterDefs = [["all", "All"], ["open", "Open"], ["ask", "Your call"], ["done", "Ticked"]];
+  var filterBtns = filterDefs.map(function (f) {
+    var b = el("button", { class: "chip", type: "button", "aria-pressed": f[0] === filter ? "true" : "false", text: f[1] });
+    b.addEventListener("click", function () { filter = f[0]; filterBtns.forEach(function (x, i) { x.setAttribute("aria-pressed", filterDefs[i][0] === filter ? "true" : "false"); }); applyFilter(); });
+    return b;
+  });
+  var themeBtn = el("button", { class: "chip", type: "button" });
+  function themeLabel() { themeBtn.textContent = "Theme: " + theme; }
+  themeLabel();
+  themeBtn.addEventListener("click", function () { theme = themes[(themes.indexOf(theme) + 1) % themes.length]; save(THEME_KEY, theme); applyTheme(); themeLabel(); });
+  var printBtn = el("button", { class: "chip", type: "button", text: "Print" });
+  printBtn.addEventListener("click", function () { window.print(); });
+  root.appendChild(el("div", { class: "toolbar", role: "region", "aria-label": "Progress and filters" }, [
+    el("div", { class: "progress" }, [el("div", { class: "bar", role: "presentation" }, [bar]), progressText]),
+    el("div", { class: "filters", role: "group", "aria-label": "Show" }, filterBtns),
+    el("div", { class: "actions" }, [themeBtn, printBtn])
+  ]));
+
+  // ---- summary and decisions
+  var counts = {}; Object.keys(STATUS).forEach(function (k) { counts[k] = 0; });
+  allItems.forEach(function (it) { if (counts[it.status] != null) counts[it.status]++; });
+  var summary = el("section", { class: "block", "aria-labelledby": "h-summary" }, [el("h2", { id: "h-summary", text: "The detail" })]);
+  if (data.summary) summary.appendChild(richEl("p", { class: "summary" }, data.summary));
+  if (Array.isArray(data.decisions) && data.decisions.length) {
+    summary.appendChild(el("dl", { class: "decisions" }, data.decisions.map(function (d) {
+      var dd = richEl("dd", {}, d.value); if (d.assumed) dd.appendChild(el("span", { class: "assumed", text: "Assumed" }));
+      return el("div", {}, [el("dt", { text: d.label }), dd]);
+    })));
+  }
+  summary.appendChild(el("ul", { class: "counts", "aria-label": "Items by status" }, Object.keys(STATUS).map(function (k) {
+    return el("li", {}, [glyph(k), el("span", { text: STATUS[k].label + " " + counts[k] })]);
+  })));
+  root.appendChild(summary);
+
+  // ---- environment variables
+  if (Array.isArray(data.env) && data.env.length) {
+    var cols = [["name", "Variable"], ["purpose", "For"], ["local", "Local"], ["staging", "Staging"], ["production", "Production"]];
+    var table = el("table", { class: "env" }, [
+      el("thead", {}, [el("tr", {}, cols.map(function (c) { return el("th", { scope: "col", text: c[1] }); }))]),
+      el("tbody", {}, data.env.map(function (v) {
+        return el("tr", {}, cols.map(function (c) {
+          if (c[0] === "name") {
+            var nameCode = el("code"); // a break opportunity after each underscore, so long names wrap cleanly
+            String(v.name).split("_").forEach(function (part, i, all) { nameCode.appendChild(document.createTextNode(part + (i < all.length - 1 ? "_" : ""))); if (i < all.length - 1) nameCode.appendChild(el("wbr")); });
+            var td = el("td", { class: "name", "data-label": c[1] }, [nameCode]);
+            if (v.secret) { td.appendChild(document.createTextNode(" ")); td.appendChild(el("span", { class: "secret", text: "Secret" })); }
+            return td;
+          }
+          return richEl("td", { "data-label": c[1] }, v[c[0]] || "—");
+        }));
+      }))
+    ]);
+    root.appendChild(el("section", { class: "block", "aria-labelledby": "h-env" }, [
+      el("h2", { id: "h-env", text: "Environment variables" }),
+      el("p", { class: "muted", text: "Names and where each value comes from. Values never go in this page, the repo or the image; you set them on the host." }),
+      table
+    ]));
+  }
+
+  // ---- commands
+  if (Array.isArray(data.commands) && data.commands.length) {
+    root.appendChild(el("section", { class: "block", "aria-labelledby": "h-cmd" }, [
+      el("h2", { id: "h-cmd", text: "Commands, in order" }),
+      el("p", { class: "muted", text: "A heavy border marks a command that touches the outside world. The agent runs those only after your yes." }),
+      el("ol", { class: "cmds" }, data.commands.map(function (c) {
+        var head = el("div", { class: "cmd-head" }, [richEl("span", {}, c.label)]);
+        if (c.needsYes) head.appendChild(el("span", { class: "yes-tag", text: "Needs your yes" }));
+        var li = el("li", { class: "cmd" + (c.needsYes ? " yes" : "") }, [head, codeBlock(c.cmd || "")]);
+        if (c.note) li.appendChild(richEl("p", { class: "note" }, c.note));
+        return li;
+      }))
+    ]));
+  }
+
+  // ---- legend + sections
+  root.appendChild(el("ul", { class: "legend", "aria-label": "Status key" }, Object.keys(STATUS).map(function (k) {
+    return el("li", {}, [glyph(k), el("span", { text: STATUS[k].label })]);
+  })));
+  var itemNodes = [], sectionNodes = [];
+  data.sections.forEach(function (s, si) {
+    var sec = el("section", { class: "block", id: "s-" + s.id, "aria-labelledby": "h-" + s.id }, [el("h2", { id: "h-" + s.id, text: (si + 1) + ". " + s.title })]);
+    var list = el("div", { class: "items" });
+    (s.items || []).forEach(function (it) {
+      var st = STATUS[it.status] ? it.status : "todo";
+      var id = s.id + "--" + it.id;
+      if (!(it.id in state.ticks)) state.ticks[it.id] = st === "done";
+      var cb = el("input", { type: "checkbox", id: "cb-" + id, "aria-describedby": "st-" + id });
+      cb.checked = !!state.ticks[it.id];
+      var open = st !== "done" && st !== "na";
+      var body = el("div", { class: "item-body", id: "b-" + id, hidden: open ? null : true });
+      var toggle = el("button", { class: "toggle", type: "button", "aria-expanded": open ? "true" : "false", "aria-controls": "b-" + id, text: "Details" });
+      toggle.addEventListener("click", function () { var o = body.hidden; body.hidden = !o; toggle.setAttribute("aria-expanded", o ? "true" : "false"); });
+      var h3 = el("h3", {}, [el("span", { class: "slabel", id: "st-" + id, text: STATUS[st].label + (it.needsYes ? " · needs your yes" : "") }), el("label", { "for": "cb-" + id, text: it.title })]);
+      var art = el("article", { class: "item", id: "i-" + id, "data-status": st }, [el("div", { class: "item-head" }, [cb, glyph(st), h3, toggle]), body]);
+      var dl = el("dl");
+      function row(label, value, cls) { if (!value) return; dl.appendChild(el("dt", { text: label })); var dd = richEl("dd", { class: cls || null }, value); dl.appendChild(dd); return dd; }
+      row("What", it.what); row("Why", it.why);
+      var how = row("How", it.how || " ");
+      var refs = [];
+      (it.links || []).forEach(function (l) { refs.push(el("a", { href: l.href, target: "_blank", rel: "noopener noreferrer", text: l.label || l.href })); });
+      (it.files || []).forEach(function (f) { refs.push(el("code", { text: f })); });
+      if (refs.length) how.appendChild(el("div", { class: "refs" }, refs));
+      if (it.cmd) how.appendChild(codeBlock(it.cmd));
+      if (it.footnote) { var fn = el("p", { class: "footnote" }); fn.appendChild(el("span", { class: "fn-label", text: "Other options: " })); fn.appendChild(rich(it.footnote)); how.appendChild(fn); }
+      row("Done when", it.doneWhen);
+      row(STATUS[st].evidence, it.evidence, "evidence");
+      body.appendChild(dl);
+      cb.addEventListener("change", function () { state.ticks[it.id] = cb.checked; save(KEY, state); art.classList.toggle("ticked", cb.checked); update(); });
+      art.classList.toggle("ticked", cb.checked);
+      list.appendChild(art);
+      itemNodes.push({ node: art, item: it, status: st, cb: cb, section: sec });
+    });
+    sec.appendChild(list);
+    sectionNodes.push(sec);
+    root.appendChild(sec);
+  });
+
+  // ---- snippets, not verified, next
+  if (Array.isArray(data.snippets) && data.snippets.length) {
+    root.appendChild(el("section", { class: "block", "aria-labelledby": "h-snip" }, [el("h2", { id: "h-snip", text: "Config snippets" })].concat(data.snippets.map(function (sn) {
+      return el("div", { class: "snippet" }, [el("h3", {}, [document.createTextNode(sn.title || ""), sn.file ? el("span", { class: "muted" }, [document.createTextNode(" · "), el("code", { text: sn.file })]) : null]), codeBlock(sn.code || "")]);
+    }))));
+  }
+  if (Array.isArray(data.notVerified) && data.notVerified.length) {
+    root.appendChild(el("section", { class: "block", "aria-labelledby": "h-nv" }, [el("h2", { id: "h-nv", text: "Not verified yet" }), el("ul", { class: "notv" }, data.notVerified.map(function (t) { return richEl("li", {}, t); }))]));
+  }
+  root.appendChild(el("footer", { class: "end" }, [richEl("p", {}, data.next || "Next: /secure-governance, to decide roles, approvals, audit and data rules before production use."), data.disclaimer ? richEl("p", { class: "disclaimer" }, data.disclaimer) : null, el("p", { text: "Open-source example built with CopilotKit. Products named here are described for illustration; not affiliated with or endorsed by them." }), el("p", { text: "Made by the /deploy skill. Self-contained: no network, no tracking. Your ticks stay in this browser." })]));
+
+  // ---- progress and filters
+  function update() {
+    var counted = itemNodes.filter(function (x) { return x.status !== "na"; });
+    var ticked = counted.filter(function (x) { return x.cb.checked; }).length;
+    bar.style.width = (counted.length ? Math.round(100 * ticked / counted.length) : 0) + "%";
+    progressText.textContent = ticked + " of " + counted.length + " ticked";
+    save(KEY, state);
+    applyFilter();
+  }
+  function applyFilter() {
+    itemNodes.forEach(function (x) {
+      var show = filter === "all" ||
+        (filter === "open" && !x.cb.checked && x.status !== "na") ||
+        (filter === "ask" && (x.status === "ask" || x.item.needsYes) && !x.cb.checked) ||
+        (filter === "done" && x.cb.checked);
+      x.node.classList.toggle("hidden-by-filter", !show);
+    });
+    sectionNodes.forEach(function (sec) { sec.classList.toggle("empty-by-filter", !sec.querySelector(".item:not(.hidden-by-filter)")); });
+  }
+  function openItem(key) {
+    if (filter !== "all") { filter = "all"; filterBtns.forEach(function (x, i) { x.setAttribute("aria-pressed", filterDefs[i][0] === "all" ? "true" : "false"); }); applyFilter(); }
+    var body = document.getElementById("b-" + key), t = body && body.parentNode.querySelector(".toggle");
+    if (body) { body.hidden = false; if (t) t.setAttribute("aria-expanded", "true"); }
+  }
+  window.addEventListener("beforeprint", function () { itemNodes.forEach(function (x) { x.node.querySelector(".item-body").hidden = false; }); });
+  update();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copilot spec</title>
+<script>try { var t = localStorage.getItem("functional-copilot:theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) { /* storage blocked: follow the system */ }</script>
+<style>
+:root {
+  --paper: #f6f5f1; --surface: #ffffff; --ink: #141310; --muted: #65615a;
+  --hairline: #e2dfd8; --rule: #cbc7be; --on-ink: #ffffff; --stone: #edebe6;
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121110; --surface: #1c1b19; --ink: #f1efe9; --muted: #a9a59c;
+    --hairline: #2f2d29; --rule: #4a4741; --on-ink: #121110; --stone: #252421;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121110; --surface: #1c1b19; --ink: #f1efe9; --muted: #a9a59c;
+  --hairline: #2f2d29; --rule: #4a4741; --on-ink: #121110; --stone: #252421;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 var(--sans); font-variant-numeric: tabular-nums; }
+a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+code { font: 0.86em/1.4 var(--mono); background: var(--stone); padding: 0.05em 0.3em; border-radius: 3px; overflow-wrap: anywhere; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+
+/* Header */
+header.top { border-bottom: 1px solid var(--hairline); background: var(--surface); }
+header.top .wrap { padding-top: 22px; padding-bottom: 18px; }
+nav.suite { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; }
+.root { font: 700 13px/1 var(--mono); letter-spacing: 0.01em; }
+h1 { font: 500 30px/1.15 var(--serif); letter-spacing: -0.01em; margin: 0 0 10px; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0 0 14px; padding: 0; font-size: 13.5px; }
+.meta div { display: flex; gap: 6px; min-width: 0; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font: 12.5px/1 var(--sans); }
+.flow li { display: flex; align-items: center; gap: 6px; }
+.flow .step { border: 1px solid var(--rule); border-radius: 999px; padding: 5px 10px 5px 5px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.flow .step b { font: 700 11.5px/1 var(--mono); width: 18px; height: 18px; border: 1px solid currentColor; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.flow .step.here { background: var(--ink); color: var(--on-ink); border-color: var(--ink); font-weight: 700; }
+.flow .step .cmd { font: 12px/1 var(--mono); opacity: 0.85; }
+.flow .arrow { color: var(--muted); }
+.flow .learn { border: 1px dashed var(--ink); border-radius: 999px; padding: 5px 9px; }
+
+/* Controls */
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 18px 0 0; }
+.printbtn, .themebtn { font: 500 13px/1 var(--sans); background: transparent; color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 11px; min-height: 36px; cursor: pointer; }
+.progress { font-size: 13.5px; color: var(--muted); }
+
+/* The hard stop */
+.stop { margin: 18px 0 0; border: 2.5px solid var(--ink); border-radius: 12px; padding: 16px 18px; background: var(--surface); }
+.stop h2 { margin: 0 0 6px; }
+.stop p { margin: 0 0 6px; max-width: 72ch; }
+.stop.approved { border-width: 1.5px; }
+.state { display: inline-flex; align-items: center; gap: 7px; font: 700 13px/1 var(--sans); border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 10px; }
+.state::before { content: ""; width: 10px; height: 10px; border: 1.5px solid currentColor; border-radius: 50%; }
+.state.approved { background: var(--ink); color: var(--on-ink); }
+.state.approved::before { background: currentColor; }
+.notice { margin: 18px 0 0; padding: 10px 14px; border: 1px dashed var(--rule); border-radius: 10px; color: var(--muted); font-size: 14px; }
+
+/* Sections */
+section { margin: 30px 0; }
+h2 { font: 500 22px/1.25 var(--serif); margin: 0 0 4px; letter-spacing: -0.005em; text-wrap: balance; }
+h3 { font: 600 15px/1.35 var(--sans); margin: 16px 0 6px; }
+.lede { color: var(--muted); margin: 0 0 14px; max-width: 72ch; }
+.card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; }
+.label { font: 600 12.5px/1.3 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 14px 0 4px; }
+.headline { font: 400 21px/1.4 var(--serif); margin: 0 0 12px; max-width: 70ch; }
+.headline strong { font-weight: 700; }
+dl.fields { display: grid; grid-template-columns: 9rem 1fr; gap: 6px 14px; margin: 0; }
+dl.fields dt { font: 600 12.5px/1.6 var(--sans); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding-top: 1px; }
+dl.fields dd { margin: 0; min-width: 0; }
+.empty { color: var(--muted); font-style: italic; }
+ul.plain, ol.plain { margin: 0; padding-left: 1.25em; }
+ul.plain li, ol.plain li { margin: 4px 0; }
+
+/* Tables (cards at phone width) */
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.t th, table.t td { text-align: left; vertical-align: top; padding: 9px 10px; border-top: 1px solid var(--hairline); }
+table.t thead th { font: 600 12.5px/1.3 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-top: 0; }
+table.t td.k { font-weight: 600; }
+table.t td.id { font: 600 13px/1.4 var(--mono); white-space: nowrap; }
+table.stack td.layer { width: 19%; }
+table.stack td.from { width: 12%; }
+table.stack tr.wraps td { border-top: 1.5px dashed var(--rule); }
+.q { display: block; font-weight: 400; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.tag { display: inline-flex; align-items: center; font: 600 12px/1 var(--sans); border-radius: 999px; padding: 4px 8px; border: 1px solid var(--ink); white-space: nowrap; margin-top: 6px; }
+.tag.swap { background: var(--ink); color: var(--on-ink); }
+.tag.once { color: var(--muted); border-color: var(--rule); font-weight: 500; }
+.tag.wrap { border-style: dashed; font-weight: 500; }
+.from { font-size: 13px; }
+.gate { font: 700 12px/1 var(--sans); border: 1.5px solid var(--ink); border-radius: 4px; padding: 3px 6px; white-space: nowrap; }
+
+/* Route and steps */
+ol.route { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.route li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+ol.route .n { width: 28px; height: 28px; border: 1.5px solid var(--ink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 700 13px/1 var(--mono); }
+ol.route .who { font-weight: 700; }
+ol.route .why { color: var(--muted); font-size: 14px; }
+.routeorder { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+
+/* In and out */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cols h3 { margin-top: 0; }
+
+/* Checklists */
+ul.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+ul.checks li { display: grid; grid-template-columns: 30px 1fr; gap: 4px 10px; align-items: start; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 14px; break-inside: avoid; }
+ul.checks li.is-ticked { background: var(--stone); }
+ul.checks li.is-ticked .what { text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--muted); }
+ul.checks label.tick { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; cursor: pointer; }
+ul.checks input { width: 20px; height: 20px; accent-color: var(--ink); cursor: pointer; margin: 0; }
+ul.checks .what { font-weight: 600; margin: 3px 0 0; }
+ul.checks .how { color: var(--muted); font-size: 14px; margin: 3px 0 0; }
+ul.checks .note { font-size: 14px; margin: 4px 0 0; padding-left: 10px; border-left: 1px solid var(--rule); }
+
+footer { border-top: 1px solid var(--hairline); margin-top: 36px; padding: 18px 0 40px; color: var(--muted); font-size: 13px; }
+footer p { margin: 0 0 6px; max-width: 80ch; }
+
+@media (max-width: 640px) {
+  h1 { font-size: 25px; }
+  .headline { font-size: 18px; }
+  dl.fields { grid-template-columns: 1fr; gap: 2px; }
+  dl.fields dd { margin-bottom: 8px; }
+  .cols { grid-template-columns: 1fr; }
+  table.t thead { display: none; }
+  table.t, table.t tbody, table.t tr, table.t td { display: block; width: 100% !important; }
+  table.t tr { border-top: 1px solid var(--hairline); padding: 8px 0; }
+  table.t tr:first-child { border-top: 0; }
+  table.t td { border: 0; padding: 3px 0; }
+  table.t td[data-label]:not(.k):not(.id)::before { content: attr(data-label) ": "; font-weight: 600; color: var(--muted); }
+  table.stack tr.wraps td { border-top: 0; }
+  table.stack tr.wraps { border-top: 1.5px dashed var(--rule); }
+}
+@media print {
+  :root { --paper: #fff; --surface: #fff; --ink: #000; --muted: #444; --hairline: #bbb; --rule: #888; --on-ink: #fff; --stone: #eee; color-scheme: light; }
+  body { font-size: 10.5pt; background: #fff; }
+  .controls, .printbtn, .themebtn, label.tick { display: none !important; }
+  ul.checks li { grid-template-columns: 1fr; opacity: 1 !important; }
+  ul.checks li::before { content: "☐"; font-size: 13pt; line-height: 1; }
+  ul.checks li.is-ticked::before { content: "☑"; }
+  dl.fields { display: block; }
+  dl.fields dt { margin-top: 6px; }
+  dl.fields dd { margin: 0 0 2px; }
+  .cols { display: block; }
+  .cols .card + .card { margin-top: 10px; }
+  .stop, table.t tr, ol.route li, dl.fields dd { break-inside: avoid; }
+  h2, h3, .label, .lede { break-after: avoid; }
+  .stop, .card, ul.checks li { border-color: #888; }
+  .tag.swap, .flow .step.here, .state.approved { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<script type="application/json" id="catalog">{
+ "checkedAgainst": "@copilotkit/react-core and @copilotkit/runtime 1.84.1, @copilotkit/channels-* 0.12.0, on 2026-11-05",
+ "layers": [
+  {
+   "id": "products",
+   "name": "Products and interfaces",
+   "question": "Where do people meet it, and what do they see, edit and approve?",
+   "kind": "once",
+   "builtWith": "React v2 hooks mounted in the workspace: `useComponent` (generative UI), `useHumanInTheLoop` (gates), `useAgent` (the agent and shared state). `CopilotChat` or `CopilotSidebar` only where it fits the workspace. `@copilotkit/a2ui-renderer` and `@copilotkit/mcp-apps-renderer` for A2UI and MCP Apps. The Channels SDK (`@copilotkit/channels-*`) for Slack and Teams."
+  },
+  {
+   "id": "capabilities",
+   "name": "Domain capabilities",
+   "question": "Which jobs of this function does it do?",
+   "kind": "swap",
+   "builtWith": "`useFrontendTool` for tools that run in the browser, `defineTool` in the runtime for tools that run on the server, each calling tested pure functions."
+  },
+  {
+   "id": "knowledge",
+   "name": "Context and knowledge",
+   "question": "Which rules, history and live context does it work from, and how does that grow?",
+   "kind": "swap",
+   "builtWith": "`useAgentContext` for live context. CopilotKit Intelligence for threads, memory and Automatic Learning: learning spaces, and skills a person publishes, delivered with `learnedSkills`."
+  },
+  {
+   "id": "data",
+   "name": "Data and integrations",
+   "question": "Which systems of record does it read and write?",
+   "kind": "once",
+   "builtWith": "MCP servers (`BuiltInAgent`'s `mcpServers`) and server-side tools in the CopilotKit Runtime. Fixtures behind frontend tools for v1."
+  },
+  {
+   "id": "harness",
+   "name": "Agent harness",
+   "question": "What runs the loop: plans, tool calls, pauses for approval?",
+   "kind": "once",
+   "builtWith": "CopilotKit Runtime (`CopilotRuntime`, `createCopilotRuntimeHandler`) with `BuiltInAgent`, over AG-UI. LangGraph, Mastra, Google ADK or Pydantic AI agents through their AG-UI integrations."
+  },
+  {
+   "id": "models",
+   "name": "Models",
+   "question": "Which model reasons, and where does the key live?",
+   "kind": "once",
+   "builtWith": "`BuiltInAgent`'s `model`: a provider/model id, or the scripted mock (`COPILOT_MODEL=mock`). The key stays on the server, in `.env.local`."
+  },
+  {
+   "id": "governance",
+   "name": "Security and governance",
+   "question": "Who may do what, what is recorded, what can never happen?",
+   "kind": "wrap",
+   "builtWith": "Gates in tool code, each with a test. `identifyUser` on the runtime for a server-resolved user. Intelligence analytics and the decision log. OpenBot when the agent should run as a governed coworker."
+  }
+ ],
+ "reviewChecks": [
+  {
+   "id": "r-one",
+   "what": "It is one workflow, and the out-of-v1 list is right.",
+   "how": "Scope creep kills copilots. The second workflow reuses five of the seven layers."
+  },
+  {
+   "id": "r-workspace",
+   "what": "The copilot sits in the workspace where the work happens, not in a chat box beside it.",
+   "how": "Findings, cites and edits land in the main view, built with the React v2 hooks."
+  },
+  {
+   "id": "r-rules",
+   "what": "Every rule has an id and the right source, and nothing the approvers enforce is missing.",
+   "how": "Rules are checked by tested pure functions the tools call; the copilot cites the id."
+  },
+  {
+   "id": "r-numbers",
+   "what": "Each worked example's inputs and result are right.",
+   "how": "They become the first unit tests, with today's date pinned."
+  },
+  {
+   "id": "r-route",
+   "what": "The approval route matches who really approves, in the right order.",
+   "how": "Routing is a tested function, not the model's judgment."
+  },
+  {
+   "id": "r-gates",
+   "what": "Every write has a gate, including the write after the final approval.",
+   "how": "`useHumanInTheLoop` in the browser; a server-side interrupt tool or a Channels button when no browser is open."
+  },
+  {
+   "id": "r-sod",
+   "what": "Separation of duties is a rule with an id, enforced in code.",
+   "how": "In production every approval is bound to the signed-in user on the server (`identifyUser`)."
+  },
+  {
+   "id": "r-assumed",
+   "what": "Each assumption is confirmed, corrected or accepted as an assumption.",
+   "how": "Unconfirmed answers are marked Assumed where they appear and listed below."
+  },
+  {
+   "id": "r-learn",
+   "what": "The learning loop names who publishes a learned rule.",
+   "how": "Nothing reaches the agent until a named person publishes it (CopilotKit Intelligence Automatic Learning, or the in-app equivalent)."
+  }
+ ],
+ "buildSteps": [
+  {
+   "id": "b-starter",
+   "what": "Copy the starter whose shape matches.",
+   "how": "It is in the workshop repo (its URL is in the workshop README). Copy it without `node_modules`, `.next`, `.impeccable` or any `.env*.local`, then `npm install`. If your repo already is the copilot, skip this and build only the spec's changes. Into an existing app, follow the skill's references/starters.md."
+  },
+  {
+   "id": "b-content",
+   "what": "Replace the domain content.",
+   "how": "Fixtures, rules, checks, plan, panels, the learning classifier, instructions and chips. The two swapped layers live here."
+  },
+  {
+   "id": "b-tests",
+   "what": "Write the rules and worked examples as unit tests first.",
+   "how": "Implement the pure functions until they pass, before touching the UI."
+  },
+  {
+   "id": "b-workspace",
+   "what": "Build it into the workspace.",
+   "how": "Mount `CopilotKitProvider` around the screen people already work in; findings, cites and edits land in that view; `CopilotChat` only where it fits."
+  },
+  {
+   "id": "b-tools",
+   "what": "Swap the tools, components and gates.",
+   "how": "`useFrontendTool` for each job, `useComponent` for each artifact, `useHumanInTheLoop` for each gate. Put each refusal in the tool's code with a test. Handlers read live state when they run."
+  },
+  {
+   "id": "b-context",
+   "what": "Send the context the agent always needs.",
+   "how": "`useAgentContext`: the user, the open record, the draft or review, the approval state and the published rules. Text people typed goes in as quoted data."
+  },
+  {
+   "id": "b-sod",
+   "what": "Write separation of duties as tested functions.",
+   "how": "The requester never approves; the preparer is not the approver. Each rule has an id and a test."
+  },
+  {
+   "id": "b-server",
+   "what": "Move the store to the server before more than one person uses it.",
+   "how": "`identifyUser(request)` on the runtime, a server store keyed by user and record, and approvals and separation of duties enforced on the server. Until then, identity is not verified."
+  },
+  {
+   "id": "b-real",
+   "what": "Run it on a real model first.",
+   "how": "You put the key in `.env.local`. If any tool runs on the server, set `BuiltInAgent`'s `maxSteps` to 2 or more (unset, a run stops after one step). Without the key for the model's provider, the starter runs the mock (look for the label). The headcount starter checks only `OPENAI_API_KEY` and has no production gate: fix both before using another provider or deploying. Watch the AG-UI events in the web inspector (`enableInspector`)."
+  },
+  {
+   "id": "b-mock",
+   "what": "Keep a short happy path on the scripted mock.",
+   "how": "Cut `demo-script.ts` to the spec's happy path; `demo-script.test.ts` plays it with `COPILOT_MODEL=mock`, no key and no network, for demos and tests. If the repo already is the copilot, extend its script with the new steps instead of cutting it."
+  },
+  {
+   "id": "b-verify",
+   "what": "Verify, then add evals.",
+   "how": "Typecheck, tests, build, and the demo script end to end on the real model. Evals scored on tool calls and the artifact: `/secure-governance`'s eval recipe."
+  },
+  {
+   "id": "b-learn",
+   "what": "Record the learning signals.",
+   "how": "Send-backs with comments, edits to proposed values, overrides. Publishing a rule is a named person's click. The CopilotKit Intelligence switch stays off by default; Trajectories are off on hosted Intelligence today."
+  },
+  {
+   "id": "b-next",
+   "what": "Hand off to steps 4 and 5.",
+   "how": "4 `/deploy` to host it, 5 `/secure-governance` for production mode. If step 2 `/agent-context` was skipped and the copilot reaches real systems or channels, run it first."
+  }
+ ]
+}</script>
+
+<script type="application/json" id="data">{
+ "title": "",
+ "function": "",
+ "workflow": "",
+ "owner": "",
+ "date": "",
+ "status": "draft",
+ "approvedBy": "",
+ "approvedOn": "",
+ "interview": "",
+ "headline": { "trigger": "", "artifact": "", "requester": "", "approvers": "" },
+ "shape": "",
+ "starter": "",
+ "workspace": "",
+ "outcome": { "outcome": "", "whyNow": "", "metric": "" },
+ "stack": {},
+ "workflowDetail": { "trigger": "", "workItems": "", "steps": [] },
+ "actors": [],
+ "route": [],
+ "routeOrder": "",
+ "gates": [],
+ "rules": [],
+ "derived": [],
+ "tools": [],
+ "scope": { "in": [], "out": [] },
+ "learning": { "signals": "", "firstRule": "", "owner": "", "path": "" },
+ "demo": [],
+ "assumptions": [],
+ "notes": {},
+ "mdPath": "docs/copilot/copilot-spec.md"
+}</script>
+
+<header class="top">
+  <div class="wrap">
+    <nav class="suite" aria-label="The functional-copilot process">
+      <span class="root">functional-copilot</span>
+      <ol class="flow">
+        <li><span class="step"><b>1</b>Research <span class="cmd">/user-map</span></span><span class="arrow" aria-hidden="true">→</span></li>
+        <li><span class="step"><b>2</b>Context &amp; access <span class="cmd">/agent-context</span></span><span class="arrow" aria-hidden="true">→</span></li>
+        <li><span class="step here" aria-current="step"><b>3</b>Spec &amp; build</span><span class="arrow" aria-hidden="true">→</span></li>
+        <li><span class="step"><b>4</b>Deploy <span class="cmd">/deploy</span></span><span class="arrow" aria-hidden="true">→</span></li>
+        <li><span class="step"><b>5</b>Secure &amp; govern <span class="cmd">/secure-governance</span></span></li>
+        <li><span class="learn">Learn: CopilotKit Intelligence</span></li>
+      </ol>
+    </nav>
+    <h1 id="title">Copilot spec</h1>
+    <dl class="meta">
+      <div><dt>Function</dt><dd id="m-function">—</dd></div>
+      <div><dt>Workflow</dt><dd id="m-workflow">—</dd></div>
+      <div><dt>Starter</dt><dd id="m-starter">—</dd></div>
+      <div><dt>Owner</dt><dd id="m-owner">—</dd></div>
+      <div><dt>Date</dt><dd id="m-date">—</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="controls">
+    <button type="button" class="printbtn" id="print">Print</button>
+    <button type="button" class="themebtn" id="theme" aria-live="polite">Theme: auto</button>
+    <span class="progress" id="progress"></span>
+  </div>
+
+  <p class="notice" id="template-notice" hidden>This is the empty template. The skill fills it with <code>scripts/fill-spec.mjs</code>; the seven layers, the checks and the build steps below are the parts every spec shares.</p>
+
+  <div class="stop" id="stop" role="region" aria-labelledby="h-stop">
+    <h2 id="h-stop">Approve this spec before any code</h2>
+    <p id="stop-text">Nothing is copied, installed or written until you read this spec and say yes. Read the <a href="#h-assumptions">assumptions</a> first, then tick <a href="#h-review">Before you say yes</a>. To change something, say what, and the spec comes back revised.</p>
+    <p><span class="state" id="state">Draft: waiting for your yes</span></p>
+  </div>
+
+  <section aria-labelledby="h-outcome">
+    <h2 id="h-outcome">The outcome</h2>
+    <div class="card">
+      <p class="headline" id="headline"></p>
+      <dl class="fields" id="outcome"></dl>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-stack">
+    <h2 id="h-stack">The functional agent stack</h2>
+    <p class="lede">Seven layers. Five you build once and carry over from the starter; the two marked <span class="tag swap">Swapped</span> change with each function and hold most of this spec's decisions. Security and governance wraps the rest.</p>
+    <div class="card">
+      <table class="t stack">
+        <thead><tr><th scope="col">Layer</th><th scope="col">This copilot</th><th scope="col">Built with (CopilotKit)</th><th scope="col">From</th></tr></thead>
+        <tbody id="stack"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-workflow">
+    <h2 id="h-workflow">The workflow</h2>
+    <div class="card">
+      <dl class="fields" id="workflow"></dl>
+      <p class="label">Steps</p>
+      <ol class="plain" id="steps"></ol>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-people">
+    <h2 id="h-people">People and the approval route</h2>
+    <div class="card">
+      <table class="t" id="actors-table">
+        <thead><tr><th scope="col">Who</th><th scope="col">Role in the workflow</th><th scope="col">Where they work</th></tr></thead>
+        <tbody id="actors"></tbody>
+      </table>
+      <p class="label">The route, from the rules</p>
+      <ol class="route" id="route"></ol>
+      <p class="routeorder" id="route-order"></p>
+      <p class="label">Gates: nothing is written until a person clicks</p>
+      <table class="t">
+        <thead><tr><th scope="col">Action</th><th scope="col">Who decides</th><th scope="col">What they see</th><th scope="col">Options</th></tr></thead>
+        <tbody id="gates"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-rules">
+    <h2 id="h-rules">Rules, with their ids</h2>
+    <p class="lede">Each rule is a pure function with a test. The copilot cites the id; the model never decides a rule in prose.</p>
+    <div class="card">
+      <table class="t">
+        <thead><tr><th scope="col">Id</th><th scope="col">Rule</th><th scope="col">Source</th><th scope="col">Enforced in</th></tr></thead>
+        <tbody id="rules"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-derived" id="derived-section">
+    <h2 id="h-derived">Derived values and their worked examples</h2>
+    <p class="lede">Each worked example becomes the first unit test, with today's date pinned.</p>
+    <div class="card">
+      <table class="t">
+        <thead><tr><th scope="col">Value</th><th scope="col">Rule or formula</th><th scope="col">Worked example</th></tr></thead>
+        <tbody id="derived"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-tools" id="tools-section">
+    <h2 id="h-tools">Tools</h2>
+    <div class="card">
+      <table class="t">
+        <thead><tr><th scope="col">Tool</th><th scope="col">Kind</th><th scope="col">Runs in</th><th scope="col">Gate</th></tr></thead>
+        <tbody id="tools"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-scope">
+    <h2 id="h-scope">In v1, and not</h2>
+    <div class="cols">
+      <div class="card"><h3>In v1</h3><ul class="plain" id="scope-in"></ul></div>
+      <div class="card"><h3>Not in v1</h3><ul class="plain" id="scope-out"></ul></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-learning">
+    <h2 id="h-learning">The learning loop</h2>
+    <p class="lede">With CopilotKit Intelligence: Trajectories are off on hosted Intelligence today; a first learning run needs 15 threads; a person publishes every skill.</p>
+    <div class="card"><dl class="fields" id="learning"></dl></div>
+  </section>
+
+  <section aria-labelledby="h-demo" id="demo-section">
+    <h2 id="h-demo">Demo script</h2>
+    <p class="lede">It plays on the scripted mock in <code>demo-script.test.ts</code>, then on a real model.</p>
+    <div class="card">
+      <table class="t">
+        <thead><tr><th scope="col">You type or do</th><th scope="col">The copilot should</th></tr></thead>
+        <tbody id="demo"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-assumptions">
+    <h2 id="h-assumptions">Assumptions and open questions</h2>
+    <p class="lede">Read these first. Each one is a guess until you confirm it.</p>
+    <div class="card"><ol class="plain" id="assumptions"></ol></div>
+  </section>
+
+  <section aria-labelledby="h-review">
+    <h2 id="h-review">Before you say yes</h2>
+    <p class="lede">Tick each one as you check it. Your ticks are saved in this browser only, when it allows.</p>
+    <ul class="checks" id="review"></ul>
+  </section>
+
+  <section aria-labelledby="h-build">
+    <h2 id="h-build">After the yes: the build</h2>
+    <p class="lede">Keep this open while the copilot is built. Each step names the CopilotKit piece to use.</p>
+    <ul class="checks" id="build"></ul>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p id="foot-gen">Made by the /functional-copilot skill.</p>
+    <p>The checkboxes are yours, saved in this browser only, when the browser allows it. State is shown by fill, outline and weight, never colour alone.</p>
+  </div>
+</footer>
+
+<noscript><div class="wrap"><p>This page needs JavaScript to draw the spec. The same spec is in the markdown file next to it (docs/copilot/copilot-spec.md).</p></div></noscript>
+
+<script>
+(function () {
+  "use strict";
+  function readJSON(id) {
+    try { return JSON.parse(document.getElementById(id).textContent); } catch (e) { return null; }
+  }
+  var catalog = readJSON("catalog") || { layers: [], reviewChecks: [], buildSteps: [] };
+  var data = readJSON("data") || {};
+  var store = {
+    get: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { if (v === null) window.localStorage.removeItem(k); else window.localStorage.setItem(k, v); } catch (e) { /* storage blocked: the page still works */ } }
+  };
+  var slug = String(data.title || "spec").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "spec";
+  var KEY = "functional-copilot:" + slug + ":";
+  var FROM = { starter: "From the starter", "new": "New", mixed: "Starter pattern, new content" };
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    (kids || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  /** Text with `code` spans and *Assumed* marks, built as nodes so nothing in the data is parsed as HTML. */
+  function fmt(text) {
+    var frag = document.createDocumentFragment();
+    String(text == null ? "" : text).split("`").forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2) { frag.appendChild(el("code", { text: part })); return; }
+      part.split(/(\*Assumed\*)/).forEach(function (bit) {
+        if (!bit) return;
+        frag.appendChild(bit === "*Assumed*" ? el("em", { text: "Assumed" }) : document.createTextNode(bit));
+      });
+    });
+    return frag;
+  }
+  function txt(tag, text, attrs) { var n = el(tag, attrs); if (text) n.appendChild(fmt(text)); else { n.className = (n.className ? n.className + " " : "") + "empty"; n.textContent = "—"; } return n; }
+  function has(v) { return v != null && String(v).trim() !== ""; }
+  function list(v) { return Array.isArray(v) ? v : []; }
+  function setText(id, value) { var n = document.getElementById(id); if (n) n.textContent = has(value) ? value : "—"; }
+  function fields(id, pairs) {
+    var dl = document.getElementById(id); dl.textContent = "";
+    pairs.forEach(function (p) { dl.appendChild(el("dt", { text: p[0] })); dl.appendChild(txt("dd", p[1])); });
+  }
+  function rows(id, items, cols) {
+    var body = document.getElementById(id); body.textContent = "";
+    if (!items.length) {
+      var tr = el("tr"); var td = el("td", { colspan: String(cols.length), "class": "empty", text: "None yet." }); tr.appendChild(td); body.appendChild(tr); return;
+    }
+    items.forEach(function (it) {
+      var tr = el("tr");
+      cols.forEach(function (c) {
+        var td = txt("td", it[c.key], { "data-label": c.label });
+        if (c.cls) td.className += " " + c.cls;
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+  function bullets(id, items, ordered) {
+    var ul = document.getElementById(id); ul.textContent = "";
+    if (!items.length) { ul.appendChild(el("li", { "class": "empty", text: "None yet." })); return; }
+    items.forEach(function (t) { ul.appendChild(txt("li", t)); });
+  }
+
+  /* Ticks live in memory for this visit, and in localStorage when the browser allows it. */
+  var ticks = {};
+  function ticked(id) { return id in ticks ? ticks[id] : store.get(KEY + id) === "1"; }
+  function setTicked(id, on) { ticks[id] = on; store.set(KEY + id, on ? "1" : null); }
+  function checklist(id, items) {
+    var ul = document.getElementById(id); ul.textContent = "";
+    items.forEach(function (it) {
+      var li = el("li", { "class": ticked(it.id) ? "is-ticked" : "" });
+      var box = el("input", { type: "checkbox", id: "c-" + it.id });
+      box.checked = ticked(it.id);
+      box.onchange = function () { setTicked(it.id, box.checked); li.className = box.checked ? "is-ticked" : ""; progress(); };
+      var lab = el("label", { "class": "tick", "for": "c-" + it.id }, [box, el("span", { "class": "sr", text: it.what })]);
+      lab.querySelector(".sr").style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)";
+      var body = el("div", null, [txt("p", it.what, { "class": "what" }), txt("p", it.how, { "class": "how" })]);
+      var note = (data.notes || {})[it.id];
+      if (has(note)) body.appendChild(txt("p", note, { "class": "note" }));
+      li.appendChild(lab); li.appendChild(body); ul.appendChild(li);
+    });
+  }
+  function progress() {
+    var all = list(catalog.reviewChecks).concat(list(catalog.buildSteps));
+    var r = list(catalog.reviewChecks).filter(function (c) { return ticked(c.id); }).length;
+    var b = list(catalog.buildSteps).filter(function (c) { return ticked(c.id); }).length;
+    document.getElementById("progress").textContent = all.length ? "Checked: " + r + " of " + list(catalog.reviewChecks).length + " before the yes, " + b + " of " + list(catalog.buildSteps).length + " build steps" : "";
+  }
+
+  function render() {
+    var filled = has(data.title);
+    document.getElementById("template-notice").hidden = filled;
+    if (filled) { document.getElementById("title").textContent = data.title; document.title = data.title + " · copilot spec"; }
+    setText("m-function", data["function"]);
+    setText("m-workflow", data.workflow);
+    setText("m-starter", data.starter);
+    setText("m-owner", data.owner);
+    setText("m-date", data.date);
+
+    var approved = data.status === "approved";
+    var state = document.getElementById("state");
+    state.className = "state" + (approved ? " approved" : "");
+    state.textContent = approved ? "Approved" + (has(data.approvedBy) ? " by " + data.approvedBy : "") + (has(data.approvedOn) ? " on " + data.approvedOn : "") : "Draft: waiting for your yes";
+    document.getElementById("stop").className = "stop" + (approved ? " approved" : "");
+    if (has(data.interview)) {
+      var it = document.getElementById("stop-text");
+      it.appendChild(document.createTextNode(" Interview: "));
+      it.appendChild(fmt(data.interview));
+      it.appendChild(document.createTextNode("."));
+    }
+
+    var h = data.headline || {};
+    var hl = document.getElementById("headline"); hl.textContent = "";
+    if (has(h.trigger)) {
+      hl.appendChild(document.createTextNode("From "));
+      hl.appendChild(el("strong", null, [fmt(h.trigger)]));
+      hl.appendChild(document.createTextNode(" to "));
+      hl.appendChild(el("strong", null, [fmt(h.artifact)]));
+      hl.appendChild(document.createTextNode(", for "));
+      hl.appendChild(el("strong", null, [fmt(h.requester)]));
+      hl.appendChild(document.createTextNode(", approved by "));
+      hl.appendChild(el("strong", null, [fmt(h.approvers)]));
+      hl.appendChild(document.createTextNode("."));
+    } else { hl.className = "headline empty"; hl.textContent = "From <trigger> to <artifact>, for <requester>, approved by <approvers>."; }
+    var o = data.outcome || {};
+    fields("outcome", [["Outcome", o.outcome], ["Why now", o.whyNow], ["Metric", o.metric], ["Shape", data.shape], ["Workspace", data.workspace]]);
+
+    var sb = document.getElementById("stack"); sb.textContent = "";
+    list(catalog.layers).forEach(function (L) {
+      var mine = (data.stack || {})[L.id] || {};
+      var tr = el("tr", { "class": L.kind === "wrap" ? "wraps" : "" });
+      var name = el("td", { "class": "k layer", "data-label": "Layer" }, [L.name, el("span", { "class": "q", text: L.question })]);
+      name.appendChild(el("span", { "class": "tag " + L.kind, text: L.kind === "swap" ? "Swapped" : L.kind === "wrap" ? "Wraps every layer" : "Built once" }));
+      tr.appendChild(name);
+      tr.appendChild(txt("td", mine.thisCopilot, { "data-label": "This copilot" }));
+      tr.appendChild(txt("td", mine.builtWith || L.builtWith, { "data-label": "Built with" }));
+      tr.appendChild(txt("td", FROM[mine.from] || mine.from, { "data-label": "From", "class": "from" }));
+      sb.appendChild(tr);
+    });
+
+    var w = data.workflowDetail || {};
+    fields("workflow", [["Trigger", w.trigger], ["Work items", w.workItems]]);
+    var st = document.getElementById("steps"); st.textContent = "";
+    if (!list(w.steps).length) st.appendChild(el("li", { "class": "empty", text: "None yet." }));
+    list(w.steps).forEach(function (s) {
+      var li = el("li");
+      if (has(s.who)) { li.appendChild(el("strong", { text: s.who })); li.appendChild(document.createTextNode(": ")); }
+      li.appendChild(fmt(s.what));
+      if (has(s.gate)) { li.appendChild(document.createTextNode(" ")); li.appendChild(el("span", { "class": "gate", text: "Gate: " + s.gate })); }
+      st.appendChild(li);
+    });
+
+    rows("actors", list(data.actors), [{ key: "name", label: "Who", cls: "k" }, { key: "role", label: "Role" }, { key: "where", label: "Where they work" }]);
+    var ro = document.getElementById("route"); ro.textContent = "";
+    if (!list(data.route).length) ro.appendChild(el("li", { "class": "empty", text: "None yet." }));
+    list(data.route).forEach(function (r, i) {
+      var body = el("div", null, [el("span", { "class": "who", text: r.who || "—" })]);
+      if (has(r.rule) || has(r.when)) body.appendChild(el("div", { "class": "why" }, [fmt([r.rule, r.when].filter(has).join(" · "))]));
+      ro.appendChild(el("li", null, [el("span", { "class": "n", text: String(i + 1) }), body]));
+    });
+    var rord = document.getElementById("route-order"); rord.textContent = ""; if (has(data.routeOrder)) rord.appendChild(fmt(data.routeOrder));
+    rows("gates", list(data.gates), [{ key: "action", label: "Action", cls: "k" }, { key: "who", label: "Who decides" }, { key: "sees", label: "What they see" }, { key: "options", label: "Options" }]);
+    rows("rules", list(data.rules), [{ key: "id", label: "Id", cls: "id" }, { key: "rule", label: "Rule" }, { key: "source", label: "Source" }, { key: "enforcedIn", label: "Enforced in" }]);
+    rows("derived", list(data.derived), [{ key: "value", label: "Value", cls: "k" }, { key: "rule", label: "Rule" }, { key: "example", label: "Worked example" }]);
+    rows("tools", list(data.tools), [{ key: "name", label: "Tool", cls: "id" }, { key: "kind", label: "Kind" }, { key: "runsIn", label: "Runs in" }, { key: "gate", label: "Gate" }]);
+    var sc = data.scope || {};
+    bullets("scope-in", list(sc["in"])); bullets("scope-out", list(sc.out));
+    var l = data.learning || {};
+    fields("learning", [["Signals", l.signals], ["First rule", l.firstRule], ["Who publishes", l.owner], ["Path", l.path]]);
+    rows("demo", list(data.demo), [{ key: "you", label: "You", cls: "k" }, { key: "copilot", label: "The copilot should" }]);
+    bullets("assumptions", list(data.assumptions), true);
+
+    checklist("review", list(catalog.reviewChecks));
+    checklist("build", list(catalog.buildSteps));
+    progress();
+
+    var gen = "Made by the /functional-copilot skill" + (has(data.date) ? " on " + data.date : "") + ". The markdown version is " + (data.mdPath || "docs/copilot/copilot-spec.md") + ". CopilotKit names checked against " + (catalog.checkedAgainst || "the installed packages") + ".";
+    document.getElementById("foot-gen").textContent = gen;
+  }
+
+  document.getElementById("print").onclick = function () { window.print(); };
+  /* Theme: auto follows the system; light and dark are saved in this browser when it allows. */
+  var THEMES = ["auto", "light", "dark"];
+  var themeBtn = document.getElementById("theme");
+  function currentTheme() { var t = document.documentElement.getAttribute("data-theme"); return t === "light" || t === "dark" ? t : "auto"; }
+  function showTheme() { themeBtn.textContent = "Theme: " + currentTheme(); }
+  themeBtn.onclick = function () {
+    var next = THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length];
+    if (next === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", next);
+    store.set("functional-copilot:theme", next === "auto" ? null : next);
+    showTheme();
+  };
+  showTheme();
+  render();
+})();
+</script>
+</body>
+</html>

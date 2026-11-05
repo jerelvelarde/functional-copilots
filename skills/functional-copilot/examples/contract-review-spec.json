@@ -1,0 +1,408 @@
+{
+ "title": "Legal copilot: vendor contract review",
+ "function": "Legal",
+ "workflow": "Vendor contract review against the playbook",
+ "owner": "Maya Chen, Senior Counsel (fictional)",
+ "date": "2026-11-05",
+ "status": "draft",
+ "approvedBy": "",
+ "approvedOn": "",
+ "interview": "written for the workshop from Open Harvey (`starters/open-harvey/`); Northstar Software and every person are fictional",
+ "headline": {
+  "trigger": "“Review the Acme Cloud MSA and get it ready to sign”",
+  "artifact": "a redline package every approver has approved",
+  "requester": "Senior Counsel",
+  "approvers": "the General Counsel, plus the Head of Security and the CFO when the rules route to them"
+ },
+ "shape": "Review against a playbook: a plan the user approves, a checklist worked live, cited findings, redlines, routed approvals",
+ "starter": "starters/open-harvey/",
+ "workspace": "The matter workspace, a document reader and editor: the contract viewer, the review table with editable redlines and the live plan rail are the screen; the copilot's thread sits at its centre, one thread per matter",
+ "outcome": {
+  "outcome": "Every deviation from the playbook found and cited, a redline drafted for each, the route worked out from the rules, and the package sent for approval only on Senior Counsel's click. Nothing goes to the vendor until every approver has approved.",
+  "whyNow": "Two lawyers, 41 open vendor contracts (the workshop story's figures). Of the six reviews before go-live, a third were approved first time, the median was 10.5 days, and 29 days were lost to send-backs, three of them for the same missing security evidence.",
+  "metric": "First-pass approval rate and days lost to send-backs, before and since go-live"
+ },
+ "stack": {
+  "products": {
+   "thisCopilot": "Matters, the review table with editable redlines, the contract viewer, approvals, insights and analytics; plan, findings, redline and send cards in the matter's thread",
+   "from": "starter"
+  },
+  "capabilities": {
+   "thisCopilot": "Review against the playbook as a 17-task checklist, a redline per deviation, re-check of a human edit, routing, one question across a collection",
+   "from": "new"
+  },
+  "knowledge": {
+   "thisCopilot": "A 12-rule playbook plus 3 routing rules, six imported past reviews, rules the General Counsel publishes (PB-SEC-01)",
+   "from": "new"
+  },
+  "data": {
+   "thisCopilot": "Contracts as text with stable passage ids, deal terms as a record tested word for word against the text, one shared store",
+   "from": "mixed"
+  },
+  "harness": {
+   "thisCopilot": "One route, `/api/copilotkit`: a `CopilotRuntime` with one `BuiltInAgent`, its prompt built from the playbook; every business tool is a frontend tool",
+   "from": "starter"
+  },
+  "models": {
+   "thisCopilot": "`openai/gpt-5.4-mini`, or the scripted mock with no key",
+   "from": "starter"
+  },
+  "governance": {
+   "thisCopilot": "Gates in tool code with tests, a decision log, CopilotKit Intelligence off by default; no sign-in yet",
+   "from": "mixed"
+  }
+ },
+ "workflowDetail": {
+  "trigger": "A vendor contract lands in Senior Counsel's queue; she types the review sentence",
+  "workItems": "One contract at a time, reviewed as a 17-task checklist (18 once a learned rule adds a task). Optional: one question across eight contracts, one cell per tool call",
+  "steps": [
+   {
+    "who": "Maya",
+    "what": "asks for the review; the copilot reads the matter and proposes the 17-task plan",
+    "gate": "Approve plan / Not yet"
+   },
+   {
+    "who": "Copilot",
+    "what": "works the checklist live: 7 cited deviations, 5 cited passes, a redline for each deviation, the route from the rules"
+   },
+   {
+    "who": "Maya",
+    "what": "rewrites the §8.2 redline in the review table; the copilot re-checks PB-LIAB-01, asks only for the reason, never changes it back"
+   },
+   {
+    "who": "Maya",
+    "what": "gives the reason and asks to send it",
+    "gate": "Send for approval / Keep editing"
+   },
+   {
+    "who": "Approvers",
+    "what": "decide in route order: Rachel approves, Jordan sends it back for the security evidence",
+    "gate": "Approve / Send back / Reject"
+   },
+   {
+    "who": "Rachel",
+    "what": "publishes the proposed rule PB-SEC-01 from four send-backs",
+    "gate": "Publish to the copilot"
+   },
+   {
+    "who": "Maya",
+    "what": "sends the package to the vendor once every approver has approved. In the starter today task 17 completes on the last approval with no click of its own; v1 adds this gate",
+    "gate": "Send to vendor / Hold (to add)"
+   }
+  ]
+ },
+ "actors": [
+  {
+   "name": "Maya Chen, Senior Counsel",
+   "role": "Requester and reviewer: approves the plan, edits redlines, gives reasons, sends",
+   "where": "The matter workspace"
+  },
+  {
+   "name": "Rachel Adler, General Counsel",
+   "role": "Approves any position below the playbook; publishes playbook changes",
+   "where": "Approvals in the app"
+  },
+  {
+   "name": "Jordan Blake, Head of Security",
+   "role": "Approves data, security and customer-data terms",
+   "where": "Approvals in the app"
+  },
+  {
+   "name": "Elena Ortiz, CFO",
+   "role": "Approves the spend above $500,000 total contract value",
+   "where": "Approvals in the app"
+  },
+  {
+   "name": "Dana Kim, Director, Platform",
+   "role": "Business owner who needs the vendor; not on the route",
+   "where": "—"
+  }
+ ],
+ "route": [
+  {
+   "who": "Rachel Adler, General Counsel",
+   "rule": "PB-APR-01",
+   "when": "any deviation from the playbook"
+  },
+  {
+   "who": "Jordan Blake, Head of Security",
+   "rule": "PB-APR-02",
+   "when": "a data, security or customer-data deviation (§6.1, §6.4, §7.3)"
+  },
+  {
+   "who": "Elena Ortiz, CFO",
+   "rule": "PB-APR-03",
+   "when": "total contract value $720,000 is above $500,000"
+  }
+ ],
+ "routeOrder": "Route order, worked out by `routeApprovals` in `src/lib/review.ts`. One send-back returns the review to Maya. No delegates or escalation in v1 (*Assumed*).",
+ "gates": [
+  {
+   "action": "Approve the plan (`proposePlan`, `useHumanInTheLoop`)",
+   "who": "Maya",
+   "sees": "All 17 tasks and the rule each checks",
+   "options": "Approve plan / Not yet"
+  },
+  {
+   "action": "Send for approval (`requestApproval`, `useHumanInTheLoop`)",
+   "who": "Maya",
+   "sees": "The route, the rule behind each approver, her reasons",
+   "options": "Send for approval / Keep editing"
+  },
+  {
+   "action": "Decide",
+   "who": "Each approver in route order",
+   "sees": "The positions below the playbook and Maya's reasons",
+   "options": "Approve / Send back / Reject"
+  },
+  {
+   "action": "Publish a proposed rule",
+   "who": "Rachel (rule owner)",
+   "sees": "The rule and the send-backs behind it, in the approvers' words",
+   "options": "Publish to the copilot / Dismiss"
+  },
+  {
+   "action": "Send the package to the vendor (to add in v1)",
+   "who": "Maya",
+   "sees": "The approved package, after every approver",
+   "options": "Send to vendor / Hold"
+  }
+ ],
+ "rules": [
+  {
+   "id": "PB-REN-01",
+   "rule": "Renews for at most 12 months; cancel with at most 30 days' notice",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS` in `src/lib/review.ts`"
+  },
+  {
+   "id": "PB-PAY-01",
+   "rule": "Net 45 or longer",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-LIAB-01",
+   "rule": "Liability cap at least 12 months of fees",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`, `RECHECKS`"
+  },
+  {
+   "id": "PB-IND-01",
+   "rule": "Vendor defends IP claims, outside the cap",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-DATA-01",
+   "rule": "Signed DPA before customer personal data is processed",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-DATA-02",
+   "rule": "Security incident notice within 72 hours",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-IP-01",
+   "rule": "Northstar owns its data and outputs; aggregated, de-identified metrics only",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-CONF-01",
+   "rule": "Mutual confidentiality for at least 3 years after the contract ends",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-TERM-01",
+   "rule": "Termination for convenience on at most 30 days' notice",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-ASSIGN-01",
+   "rule": "No assignment without consent, except to a successor",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-INS-01",
+   "rule": "Cyber insurance of at least $5,000,000 and general liability of at least $2,000,000",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-LAW-01",
+   "rule": "California or Delaware law and courts",
+   "source": "playbook.md",
+   "enforcedIn": "`CHECKS`"
+  },
+  {
+   "id": "PB-APR-01/02/03",
+   "rule": "Route to the General Counsel, Head of Security and CFO",
+   "source": "playbook.md",
+   "enforcedIn": "`routeApprovals`, `totalContractValue`"
+  },
+  {
+   "id": "PB-SOD-01",
+   "rule": "*Assumed*: the requester is never on the route and never decides",
+   "source": "Separation of duties, not in the playbook",
+   "enforcedIn": "to add: a pure function with a test"
+  },
+  {
+   "id": "PB-SEC-01 v1",
+   "rule": "Learned: for data processors, request the SOC 2 Type II report and latest pen-test summary before signing",
+   "source": "4 send-backs, published by Rachel Adler",
+   "enforcedIn": "`LEARNED_CHECKS`"
+  }
+ ],
+ "derived": [
+  {
+   "value": "Total contract value",
+   "rule": "annual fee × initial term in months / 12",
+   "example": "240,000 × 36 / 12 = $720,000"
+  },
+  {
+   "value": "Route",
+   "rule": "any deviation → GC; data or security deviation → Head of Security; value > $500,000 → CFO",
+   "example": "7 deviations, 3 of them data or security, $720,000 → Rachel → Jordan → Elena"
+  },
+  {
+   "value": "Findings and risk",
+   "rule": "one check per rule against the deal terms",
+   "example": "7 deviations: high §8.2, §6.1, §6.4; medium §3.3, §7.3, §11.2; low §4.2. The other 5 rules pass, each cited"
+  },
+  {
+   "value": "Re-check of an edited redline",
+   "rule": "the rule's minimum against the new text",
+   "example": "“six (6) months … $1,000,000 cap for data-protection breaches” → PB-LIAB-01 still deviates (12 months wanted)"
+  },
+  {
+   "value": "Days lost to security send-backs",
+   "rule": "sum of days from send-back to evidence received",
+   "example": "Lumen Ridge, Cobalt Harbor, Fernway → 22 days. Today is pinned to 2026-11-05"
+  }
+ ],
+ "tools": [
+  {
+   "name": "readMatter",
+   "kind": "read",
+   "runsIn": "frontend (`useFrontendTool`)",
+   "gate": "no"
+  },
+  {
+   "name": "proposePlan",
+   "kind": "write (the plan)",
+   "runsIn": "frontend (`useHumanInTheLoop`)",
+   "gate": "yes: Approve plan"
+  },
+  {
+   "name": "runPlanTask",
+   "kind": "compute; ticks one task",
+   "runsIn": "frontend (`useFrontendTool`)",
+   "gate": "refuses until the plan is approved; plan order"
+  },
+  {
+   "name": "showFindings, showRedlines, showRecheck",
+   "kind": "generative UI",
+   "runsIn": "frontend (`useComponent`)",
+   "gate": "no"
+  },
+  {
+   "name": "updateRedline",
+   "kind": "write (draft)",
+   "runsIn": "frontend (`useFrontendTool`)",
+   "gate": "never overwrites Maya's redline unless she asked"
+  },
+  {
+   "name": "recheckRedline",
+   "kind": "compute",
+   "runsIn": "frontend (`useFrontendTool`)",
+   "gate": "no"
+  },
+  {
+   "name": "setDeviationReason",
+   "kind": "write (draft)",
+   "runsIn": "frontend (`useFrontendTool`)",
+   "gate": "no"
+  },
+  {
+   "name": "requestApproval",
+   "kind": "write",
+   "runsIn": "frontend (`useHumanInTheLoop`)",
+   "gate": "yes: Send for approval; refuses while an accepted deviation has no reason"
+  },
+  {
+   "name": "readCollection, fillCollectionCell",
+   "kind": "read; compute one cell",
+   "runsIn": "frontend (`useFrontendTool`)",
+   "gate": "no"
+  }
+ ],
+ "scope": {
+  "in": [
+   "Vendor contracts (MSAs and order forms) against one playbook",
+   "A plan the user approves, the checklist worked live, cited findings and passes",
+   "A redline per deviation, editable, re-checked after a human edit",
+   "Routing by rule, the send gate, approvals with send-backs in the approvers' words",
+   "Insights: send-backs become a proposed rule a person publishes",
+   "Analytics and the decision log from tested functions",
+   "One question across the vendor collection, one cited cell per tool call"
+  ],
+  "out": [
+   "Word and Outlook add-ins",
+   "Extraction from uploaded files (a hand-written terms record stands in, tested against the text)",
+   "E-signature, and the real send to the vendor",
+   "Connectors, SSO and sign-in",
+   "Approvals in Slack or Teams"
+  ]
+ },
+ "learning": {
+  "signals": "Send-backs in the approvers' own words, human redline edits (before and after), plan approvals, sends, published rules; the decision log reads the same entries",
+  "firstRule": "PB-SEC-01 “Security evidence for data processors”, proposed once a fourth matching send-back arrives",
+  "owner": "Rachel Adler, General Counsel. Nothing changes the agent's behaviour until her click, and a published rule changes new plans only",
+  "path": "In the app: Insights groups send-backs (`src/lib/learning.ts`) and publishing switches on a prepared check (`LEARNED_CHECKS`). In production: CopilotKit Intelligence Automatic Learning behind an off-by-default switch (`CPK_INTELLIGENCE_ENABLED`); Trajectories (`@copilotkit/learning`) are off on hosted Intelligence today"
+ },
+ "demo": [
+  {
+   "you": "“Review the Acme Cloud MSA and get it ready to sign.”",
+   "copilot": "Read the matter; propose the 17-task plan as a card. Nothing runs before the click"
+  },
+  {
+   "you": "Approve plan",
+   "copilot": "Work the checklist live; fill the review table with 7 cited deviations and 5 cited passes; draft a redline for each; route Rachel → Jordan → Elena"
+  },
+  {
+   "you": "Rewrite the §8.2 redline to 6 months of fees with a $1,000,000 data-breach cap",
+   "copilot": "“Saw your edit · re-checked”: PB-LIAB-01 still deviates; ask only for the reason. Never change the value back"
+  },
+  {
+   "you": "Give the reason, then “Send it for approval.”",
+   "copilot": "Show the send card with the route, the rules and the reason. Nothing is sent until the click"
+  },
+  {
+   "you": "Approve as Rachel; send back as Jordan, asking for the SOC 2 Type II report and pen-test summary",
+   "copilot": "Insights proposes PB-SEC-01 from four send-backs; Rachel publishes it"
+  },
+  {
+   "you": "“Review the Brightwater Metrics order form.”",
+   "copilot": "The 18-task plan includes the SOC 2 and pen-test request (PB-SEC-01 v1, learned) without being asked"
+  }
+ ],
+ "assumptions": [
+  "The send to the vendor (task 17) needs its own gate: in the starter today it completes on the last approval. Where it writes in production is *Assumed*.",
+  "PB-SOD-01 is *Assumed*. Not in the starter yet; in the demo the presenter acts as every approver, so a decision-time check can't fire from the UI.",
+  "Identity is not verified: no sign-in. With Intelligence on, the user is resolved on the server (`identifyUser`).",
+  "Approvers in Slack or Teams are later work (*Assumed*).",
+  "No delegates or escalation in v1 (*Assumed*)."
+ ],
+ "notes": {
+  "b-starter": "Here the starter is the copilot: `starters/open-harvey/` already implements this spec.",
+  "b-learn": "Open Harvey's switch: `src/lib/intelligence.ts`, events in `src/lib/trajectory-events.ts`, sent by `src/copilot/useDecisionEvents.ts`."
+ },
+ "mdPath": "skills/functional-copilot/assets/worked-example-contract-review.md"
+}

@@ -1,0 +1,16 @@
+# Required by the loader, validated at startup, and read by nothing (docs/configuration.md,
+# "knowledge.yaml"). It only accepts `google-drive` and `microsoft-onedrive` roots, so it cannot point
+# at files in this package, and declaring a Drive folder here would not make the Contract Copilot
+# read it.
+#
+# Northstar's legal knowledge reaches the Contract Copilot two other ways instead:
+#   - The written playbook (data/playbook.md) and the published rule PB-SEC-01 v1 are quoted in its
+#     system prompt, so every rule can be cited by id without a lookup.
+#   - The contracts, their deal terms, the review, the route, the approvals and the security evidence
+#     (data/) are served by Northstar Legal, the MCP server in legal-system/, which does every check
+#     and every sum so the model never does arithmetic or decides a finding.
+#
+# In production, point the Contract Copilot at your real contract store the OpenBot way: connect
+# Google Drive or SharePoint under Connections and grant its tools to the coworker; the package's
+# skills can then name them.
+sources: []

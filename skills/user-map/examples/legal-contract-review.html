@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>User map · Senior counsel</title>
+<!--
+  /user-map template. Do not hand-edit the markup below: fill the JSON in the
+  <script id="user-map-data"> block (schema: skills/user-map/references/map-schema.md)
+  and build it with:  node skills/user-map/scripts/build-map.mjs docs/copilot/user-map.json
+  One self-contained file: inline CSS and JS, no network calls, no external fonts.
+-->
+<style>
+:root {
+  --paper: #f6f5f1; --surface: #ffffff; --stone: #edebe6; --stone-deep: #e1ded6;
+  --ink: #141310; --ink-soft: #2d2b27; --muted: #65615a; --hairline: #e2dfd8; --rule: #cbc7be;
+  --on-ink: #ffffff;
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --r: 8px; --r-sm: 5px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121110; --surface: #1b1a18; --stone: #252421; --stone-deep: #2f2d29;
+    --ink: #f0efe9; --ink-soft: #d9d7cf; --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c;
+    --on-ink: #121110;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121110; --surface: #1b1a18; --stone: #252421; --stone-deep: #2f2d29;
+  --ink: #f0efe9; --ink-soft: #d9d7cf; --muted: #a9a59c; --hairline: #2f2d29; --rule: #45423c;
+  --on-ink: #121110;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 14.5px/1.55 var(--sans); font-variant-numeric: tabular-nums;
+}
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px 64px; }
+@media (min-width: 720px) { .wrap { padding: 0 32px 80px; } }
+
+/* top bar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+.bar .tag { font: 600 12px/1 var(--mono); letter-spacing: .02em; }
+.bar .tools { display: flex; gap: 6px; }
+.btn { font: 500 12.5px/1 var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 7px 10px; cursor: pointer; }
+.btn:hover { background: var(--stone); }
+.btn:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* where this sits: the functional-copilot root, then the numbered steps */
+.sroot { font: 600 11.5px/1 var(--mono); letter-spacing: .05em; color: var(--muted); }
+ol.suite5 { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; font-size: 12.5px; }
+ol.suite5 li { display: flex; align-items: center; gap: 4px; }
+ol.suite5 li + li::before { content: "→"; color: var(--muted); padding: 0 2px; }
+.st { border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; color: var(--ink-soft); white-space: nowrap; }
+.st b { font: 600 11.5px/1 var(--mono); margin-right: 4px; }
+.st.now { background: var(--ink); color: var(--on-ink); border-color: var(--ink); font-weight: 600; }
+.st.learn { border-style: dashed; color: var(--muted); }
+
+/* the calm top: one headline, then role → software → copilot */
+header.top { padding: 34px 0 30px; display: flex; flex-direction: column; justify-content: center; }
+@media (min-width: 760px) and (min-height: 620px) { header.top { min-height: calc(100vh - 58px); padding: 32px 0 36px; } }
+header.top h1 { font: 500 clamp(32px, 5.4vw, 58px)/1.08 var(--serif); letter-spacing: -.015em; margin: clamp(28px, 7vh, 64px) 0 clamp(24px, 6vh, 52px); max-width: 20ch; }
+ol.rpath { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+@media (min-width: 760px) { ol.rpath { flex-direction: row; gap: 0; } }
+ol.rpath .pc { flex: 1 1 0; min-width: 0; }
+ol.rpath .arr { align-self: center; color: var(--muted); font-size: 20px; line-height: 1; padding: 2px 0; }
+@media (min-width: 760px) { ol.rpath .arr { padding: 0 12px; } }
+@media (max-width: 759px) { ol.rpath .arr { transform: rotate(90deg); } }
+.pc a { display: flex; flex-direction: column; gap: 7px; height: 100%; text-decoration: none; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 18px 20px 20px; }
+.pc a:hover { border-color: var(--rule); }
+.pc .pk { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pc .pt { font: 500 clamp(19px, 2.2vw, 24px)/1.2 var(--serif); }
+.pc .ps { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.pc.cp a { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.pc.cp .pk, .pc.cp .ps { color: var(--on-ink); opacity: .8; }
+.scrollhint { margin: 26px 0 0; font-size: 13px; }
+.scrollhint a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--rule); }
+#glance { border-top: 1px solid var(--hairline); padding-top: 28px; }
+#glance h2 { font: 500 20px/1.25 var(--serif); margin: 0 0 8px; }
+.oneline { font: 400 clamp(16px, 2.2vw, 19px)/1.45 var(--serif); color: var(--ink-soft); max-width: 62ch; margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r); overflow: hidden; margin: 20px 0 0; }
+.meta div { background: var(--surface); padding: 10px 12px; flex: 1 1 150px; min-width: 0; }
+.meta div.wide { flex: 2 1 300px; }
+.meta dt { font-size: 11.5px; color: var(--muted); margin: 0 0 2px; }
+.meta dd { margin: 0; font-weight: 600; font-size: 13.5px; overflow-wrap: anywhere; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 14px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* map path (role → … → placement) */
+nav.path { margin: 22px 0 6px; }
+nav.path ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 0; }
+nav.path li { display: flex; align-items: center; font-size: 13px; }
+nav.path li + li::before { content: "→"; color: var(--muted); padding: 0 8px; }
+nav.path a { text-decoration: none; border-bottom: 1px solid var(--rule); padding-bottom: 1px; }
+nav.path a:hover { border-color: var(--ink); }
+nav.path .n { font: 600 11px/1 var(--mono); color: var(--muted); margin-right: 5px; }
+
+/* sections */
+section.s { padding: 34px 0 6px; border-top: 1px solid var(--hairline); margin-top: 26px; }
+.shead { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: baseline; margin-bottom: 16px; }
+.shead .num { font: 600 12px/1 var(--mono); color: var(--muted); }
+.shead h2 { font: 500 clamp(21px, 3vw, 26px)/1.2 var(--serif); margin: 0; letter-spacing: -.005em; }
+.shead p { grid-column: 2; margin: 0; color: var(--muted); font-size: 13.5px; }
+h3 { font: 600 14px/1.3 var(--sans); margin: 0 0 6px; }
+p { margin: 0 0 10px; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+.card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 14px 16px; }
+.card.assumed { border-style: dashed; border-color: var(--rule); }
+.grid2 { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+ul.plain { list-style: none; padding: 0; margin: 0; }
+ul.plain > li { padding: 8px 0; border-top: 1px solid var(--hairline); }
+ul.plain > li:first-child { border-top: 0; padding-top: 0; }
+
+/* evidence chips: status by fill, outline and weight */
+.ev { display: inline-flex; align-items: center; gap: 3px; font: 500 11px/1 var(--sans); border-radius: 999px; padding: 3px 7px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; text-decoration: none; }
+.ev.sourced { border: 1px solid var(--ink); color: var(--ink); }
+.ev.assumed { border: 1px dashed var(--muted); color: var(--muted); font-style: italic; }
+.ev.confirmed { background: var(--ink); color: var(--on-ink); border: 1px solid var(--ink); font-weight: 700; }
+.legend .ev { margin-left: 0; }
+
+/* role */
+.day { display: grid; gap: 8px; }
+.dayrow { display: grid; grid-template-columns: minmax(0, 1fr) 90px 38px; gap: 10px; align-items: center; font-size: 13.5px; }
+.track { height: 8px; background: var(--stone); border-radius: 999px; overflow: hidden; }
+.track i { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+.track.assumed i { background: repeating-linear-gradient(90deg, var(--ink) 0 4px, transparent 4px 7px); }
+@media (min-width: 560px) { .dayrow { grid-template-columns: minmax(0, 1fr) 160px 38px; } }
+.pct { text-align: right; font: 500 12.5px/1 var(--mono); }
+
+/* wireframe */
+.wire { display: grid; gap: 6px; padding: 6px; border: 1.5px solid var(--ink); border-radius: var(--r); background: var(--surface); min-height: 240px; }
+@media (min-width: 760px) { .wire { min-height: 300px; } }
+.wire .rg { background: var(--stone); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 8px; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow: hidden; position: relative; }
+.wire .rg b { font: 600 12px/1.25 var(--sans); overflow-wrap: break-word; hyphens: manual; }
+.wire .rg .hd { font-size: 11.5px; color: var(--muted); line-height: 1.35; overflow-wrap: break-word; hyphens: manual; }
+@media (max-width: 560px) { .wire .rg .hd { display: none; } .wire { min-height: 200px; } .wire .rg { padding: 6px; } .wire .rg b { font-size: 11px; } }
+.wire .rg.cp { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.wire .rg.cp .hd { color: var(--on-ink); opacity: .82; }
+.wire .rg.also { border: 2px solid var(--ink); background: var(--surface); }
+.wire .rg .badge { align-self: flex-start; white-space: nowrap; font: 700 10px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 6px; margin-bottom: 2px; }
+.wire .rg.cp .badge { background: var(--on-ink); color: var(--ink); }
+.wire .rg.also .badge { border: 1px solid var(--ink); }
+.wire .rg.new { background: transparent; border: 1px dashed var(--rule); }
+.wire .rg.new .badge { border: 1px dashed var(--muted); color: var(--muted); font-weight: 600; }
+.newtag { font: 600 10.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .04em; border: 1px dashed var(--muted); border-radius: 999px; padding: 3px 6px; margin-left: 6px; color: var(--muted); vertical-align: 1px; }
+.wirecap { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+
+table.t { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); overflow: hidden; }
+table.t th { text-align: left; font: 600 12px/1.3 var(--sans); color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--hairline); background: var(--paper); }
+table.t td { padding: 10px 12px; border-top: 1px solid var(--hairline); vertical-align: top; }
+table.t tr.assumed td { border-top-style: dashed; }
+@media (max-width: 640px) {
+  table.t thead { display: none; }
+  table.t, table.t tbody, table.t tr, table.t td { display: block; width: 100%; }
+  table.t tr { border-top: 1px solid var(--hairline); padding: 6px 0; }
+  table.t td { border: 0; padding: 4px 12px; }
+  table.t td[data-l]::before { content: attr(data-l); display: block; font-size: 11.5px; color: var(--muted); }
+}
+
+/* jobs */
+.job { display: flex; flex-direction: column; gap: 8px; }
+.job .jid { font: 600 11.5px/1 var(--mono); color: var(--muted); }
+.job .stmt { font: 400 15.5px/1.45 var(--serif); }
+.job .stmt em { font-style: normal; font-weight: 600; }
+.job dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12.5px; }
+.job dt { color: var(--muted); }
+.job dd { margin: 0; }
+.job.first { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.job.first .jid, .job.first dt { color: var(--on-ink); opacity: .75; }
+.job.first .ev.sourced { border-color: var(--on-ink); color: var(--on-ink); }
+.job.first .ev.assumed { border-color: var(--on-ink); color: var(--on-ink); opacity: .8; }
+.job.first .ev.confirmed { background: var(--on-ink); color: var(--ink); }
+.starthere { align-self: flex-start; font: 700 10.5px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; background: var(--on-ink); color: var(--ink); border-radius: 999px; padding: 4px 7px; }
+
+/* flows */
+.flow { margin: 0 0 22px; }
+.flowhead { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 0 0 10px; }
+.flowhead h3 { font: 500 18px/1.3 var(--serif); margin: 0; }
+.flowhead .io { font-size: 13px; color: var(--muted); }
+ol.steps { list-style: none; margin: 0; padding: 0; border: 1px solid var(--hairline); border-radius: var(--r); background: var(--surface); counter-reset: st; }
+ol.steps > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 10px; padding: 11px 14px; border-top: 1px solid var(--hairline); counter-increment: st; }
+ol.steps > li:first-child { border-top: 0; }
+ol.steps > li.assumed { border-top-style: dashed; }
+ol.steps > li::before { content: counter(st); font: 600 12px/22px var(--mono); color: var(--muted); }
+.stepbody { display: grid; gap: 4px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .stepbody { grid-template-columns: minmax(0, 1fr) 190px 110px; align-items: start; gap: 4px 16px; } }
+.who { font-weight: 600; }
+.where { font-size: 12.5px; color: var(--muted); }
+.timecol { font-size: 12.5px; }
+.timecol .track { margin-top: 5px; height: 6px; }
+.kind { justify-self: start; font: 600 11px/1 var(--sans); border-radius: 999px; padding: 4px 8px; white-space: nowrap; }
+@media (min-width: 760px) { .kind { justify-self: end; } }
+.kind.approval { background: var(--ink); color: var(--on-ink); }
+.kind.handoff { border: 1.5px solid var(--ink); }
+.kind.wait { border: 1px dashed var(--muted); color: var(--muted); }
+.kind.work { color: var(--muted); padding-left: 0; padding-right: 0; }
+.timegoes { margin: 10px 0 0; padding: 10px 14px; border-left: 3px solid var(--ink); background: var(--surface); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13.5px; }
+
+/* placement */
+.prow { display: grid; grid-template-columns: 1fr; gap: 8px 22px; padding: 16px 0; border-top: 1px solid var(--hairline); }
+@media (min-width: 760px) { .prow { grid-template-columns: 240px minmax(0, 1fr); } }
+.prow h3 { font: 500 17px/1.25 var(--serif); margin: 0 0 3px; }
+.prow .q { font-size: 12.5px; color: var(--muted); margin: 0 0 7px; }
+.piece { display: inline-block; font: 600 12px/1.35 var(--mono); border: 1px solid var(--ink); border-radius: var(--r-sm); padding: 3px 7px; text-decoration: none; }
+.piece:hover { background: var(--stone); }
+.pitems { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pitems li { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 9px 12px; }
+.pitems li.assumed { border-style: dashed; border-color: var(--rule); }
+.pitems .tname { font: 600 12.5px/1.3 var(--mono); display: block; margin-bottom: 2px; }
+.pitems .det { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.notthis { margin: 10px 0 0; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--r-sm); font-size: 13.5px; }
+.notthis b { font-weight: 700; }
+
+/* checklist */
+.progress { font: 600 12.5px/1 var(--mono); color: var(--muted); }
+ol.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+ol.check > li { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 12px 14px; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 2px 10px; }
+ol.check > li.done { background: var(--stone); }
+ol.check > li.done .what { text-decoration: line-through; text-decoration-thickness: 1px; }
+.check input[type="checkbox"] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ink); cursor: pointer; }
+.what { font-weight: 600; font-size: 14.5px; cursor: pointer; }
+.cid { font: 600 11.5px/1 var(--mono); color: var(--muted); margin-right: 6px; }
+.ck { display: grid; grid-template-columns: 1fr; gap: 3px 12px; margin-top: 6px; font-size: 13.5px; }
+@media (min-width: 640px) { .ck { grid-template-columns: 82px minmax(0, 1fr); } }
+.ck dt { font-size: 12px; color: var(--muted); padding-top: 1px; }
+.ck dd { margin: 0 0 4px; overflow-wrap: anywhere; }
+
+/* validate */
+.who3 { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); margin: 0 0 14px; padding: 0; list-style: none; }
+.who3 li { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.who3 li.done { background: var(--stone); }
+ol.asks { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; }
+
+/* sources */
+ol.src { margin: 0; padding-left: 22px; display: grid; gap: 8px; font-size: 13.5px; }
+ol.src li:target { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 2px; }
+.url { font: 400 12px/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+
+footer.end { margin-top: 36px; padding: 18px; border: 1.5px solid var(--ink); border-radius: var(--r); background: var(--surface); }
+footer.end h2 { font: 500 20px/1.25 var(--serif); margin: 0 0 6px; }
+.fine { margin-top: 16px; font-size: 12px; color: var(--muted); }
+.err { margin: 24px 0; padding: 14px; border: 2px solid var(--ink); border-radius: var(--r); background: var(--surface); }
+
+@media print {
+  /* (0,2,0) selectors placed last, so print wins over the dark-mode tokens too */
+  :root:not([data-print]), :root[data-theme="dark"], :root[data-theme="light"] { --paper: #fff; --surface: #fff; --stone: #f1f0ec; --ink: #000; --ink-soft: #111; --muted: #444; --hairline: #ccc; --rule: #999; --on-ink: #fff; }
+  body { font-size: 11pt; background: #fff; }
+  .bar .tools, nav.path, .scrollhint { display: none; }
+  header.top { min-height: 0; }
+  .pc.cp a, .st.now { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wrap { max-width: none; padding: 0; }
+  section.s { break-inside: auto; }
+  .card, .job, ol.steps > li, ol.check > li, .prow, .pitems li, .who3 li, .wire, table.t tr { break-inside: avoid; }
+  .shead { break-after: avoid; }
+  .job.first, .wire .rg.cp, .step.now, .ev.confirmed, .kind.approval { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a.piece::after, ol.src a::after { content: ""; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="tag">/user-map</span>
+    <span class="tools">
+      <button class="btn" type="button" id="theme" aria-label="Theme: auto, light or dark">Theme: Auto</button>
+      <button class="btn" type="button" id="print">Print</button>
+    </span>
+  </div>
+  <noscript><p class="err">This page draws the map with JavaScript. The same map is in <code>user-map.md</code> and <code>user-map.json</code> next to this file.</p></noscript>
+  <main id="map"></main>
+</div>
+
+<script type="application/json" id="user-map-data">
+{
+  "schema": "user-map/1",
+  "meta": {
+    "role": "Senior counsel",
+    "function": "Legal · vendor contracts",
+    "app": "Word and email",
+    "route": "own-app",
+    "shape": "review against a playbook",
+    "building": "Open Harvey: a web matter workspace that puts the contract, the redlines and the approvals in one place (starters/open-harvey)",
+    "date": "2026-11-05",
+    "preparedFor": "The workshop's legal example (Northstar Software, fictional)",
+    "disclaimer": "Open Harvey is an open-source demo built with CopilotKit, inspired by the patterns of leading legal AI products. Not affiliated with or endorsed by Harvey.",
+    "research": "web",
+    "headline": "A contract copilot that works inside the matter",
+    "path": {
+      "role": "Reviews vendor contracts against the playbook and gets every deviation approved",
+      "software": "Document review: the contract, tracked changes and a checklist; approvals by email",
+      "copilot": "A thread in the matter, with its plan beside it; its work lands in the redlines and approvals"
+    },
+    "oneLine": "A contract copilot that works inside the matter: it reads the open contract and the playbook, works the review checklist live, drafts redlines into the review table, and waits for the lawyer's click before the plan runs and before anything goes to an approver."
+  },
+  "role": {
+    "summary": "Maya Chen is one of two lawyers at Northstar Software, with 41 open vendor contracts. She reads each contract against the playbook, drafts the redlines, and gets every position below the playbook approved by the right people before anything goes back to the vendor. The General Counsel owns the playbook; the business owner owns the deadline.",
+    "measuredOn": [
+      {
+        "text": "Days from contract received to signature (the imported history's median is 10.5 days)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "text": "Reviews approved the first time they're sent (a third, before go-live)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "text": "Days lost to send-backs (29 across six reviews)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      }
+    ],
+    "day": [
+      {
+        "label": "Reading contracts against the playbook",
+        "share": 40,
+        "ev": "assumed"
+      },
+      {
+        "label": "Drafting redlines and negotiating",
+        "share": 25,
+        "ev": "assumed"
+      },
+      {
+        "label": "Chasing approvals over email",
+        "share": 20,
+        "ev": "assumed"
+      },
+      {
+        "label": "Answering the business's contract questions",
+        "share": 15,
+        "ev": "assumed"
+      }
+    ],
+    "people": [
+      {
+        "name": "Dana Kim, business owner",
+        "relation": "sends the contract and the deadline (signed by Friday)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "name": "Rachel Adler, General Counsel",
+        "relation": "approves any position below the playbook and owns playbook changes (PB-APR-01)",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Jordan Blake, Head of Security",
+        "relation": "approves data, security and customer-data terms (PB-APR-02)",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Elena Ortiz, CFO",
+        "relation": "approves the spend above $500,000 total contract value (PB-APR-03)",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      }
+    ]
+  },
+  "software": {
+    "primary": {
+      "name": "Microsoft Word with Track Changes",
+      "why": "Where the contract is read and redlined: every insertion and deletion is marked with who made it, and each can be accepted or rejected.",
+      "ev": "sourced",
+      "src": [
+        5,
+        6
+      ]
+    },
+    "around": [
+      {
+        "name": "Email",
+        "why": "Where the contract arrives and where approvals and send-backs happen today, as a chain with Security and Finance.",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "name": "A spreadsheet of deviations",
+        "why": "Where findings get listed by hand while reading.",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "name": "The written playbook",
+        "why": "The positions Northstar accepts, one rule per clause, owned by the General Counsel.",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      }
+    ],
+    "pattern": {
+      "name": "Document review",
+      "summary": "The document is the centre. Changes are proposed against the other side's own words and shown as strike-and-insert; comments sit beside the passage they're about; a checklist (the playbook) says what to check. Today the approvals live outside the document, in email.",
+      "object": "One contract, passage by passage (§8.2 Limitation of liability)",
+      "selection": "A passage or clause in the document; in the copilot app, a row of the review table",
+      "open": "One contract, its redlines, and the playbook it's checked against",
+      "ev": "sourced",
+      "src": [
+        2,
+        5
+      ]
+    },
+    "layout": {
+      "columns": "0.75fr 1.35fr 1.35fr",
+      "rows": "1.1fr 1fr 0.75fr",
+      "areas": [
+        "queue thread document",
+        "queue thread changes",
+        "queue checklist approvals"
+      ]
+    },
+    "regions": [
+      {
+        "id": "queue",
+        "name": "Matter queue",
+        "holds": "Contracts waiting, with stage and deadline",
+        "does": "Pick the next contract; see who each one waits on",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "id": "document",
+        "name": "Document viewer",
+        "holds": "The contract as it arrived, with numbered passages",
+        "does": "Read, jump to a clause, check what a finding quotes",
+        "ev": "sourced",
+        "src": [
+          3,
+          5
+        ]
+      },
+      {
+        "id": "changes",
+        "name": "Redlines",
+        "holds": "Replacement text struck against the vendor's words, one per deviation",
+        "does": "Draft, rewrite and accept changes",
+        "ev": "sourced",
+        "src": [
+          3,
+          6
+        ]
+      },
+      {
+        "id": "checklist",
+        "name": "Review checklist",
+        "holds": "The playbook's checks for this contract, in order",
+        "does": "Tick what passes, flag what deviates, with the rule id",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "id": "approvals",
+        "name": "Approvals",
+        "holds": "The route, each approver's decision and comment",
+        "does": "Send for approval; read a send-back",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": "thread",
+        "name": "Copilot thread",
+        "holds": "The ask, the plan card, the copilot's three-line summary",
+        "does": "Ask for a review; approve the plan; give a reason",
+        "new": true,
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "J1",
+      "when": "a vendor contract lands in my queue",
+      "want": "have it checked against our playbook, with every deviation cited and a redline drafted",
+      "so": "decide what we accept in minutes, not two days",
+      "often": "41 open vendor contracts",
+      "pain": "Two days reading, plus a hand-made spreadsheet of deviations",
+      "first": true,
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    {
+      "id": "J2",
+      "when": "a position falls below the playbook",
+      "want": "route it to the right approvers by rule, with my reason attached",
+      "so": "get sign-off without an email chain",
+      "often": "Every non-standard contract",
+      "pain": "Working out who must approve, then waiting",
+      "ev": "sourced",
+      "src": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "J3",
+      "when": "an approver sends a review back",
+      "want": "see what they asked and whether it has happened before",
+      "so": "fix it once and stop it coming back",
+      "often": "Three of six past reviews",
+      "pain": "Each send-back cost about a week",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    {
+      "id": "J4",
+      "when": "the business asks what our contracts say about something",
+      "want": "get one answer across the portfolio, with each contract's words quoted",
+      "so": "answer without opening every contract",
+      "often": "Weekly",
+      "pain": "Opening each contract by hand",
+      "ev": "assumed"
+    },
+    {
+      "id": "J5",
+      "when": "the same unwritten rule keeps coming up",
+      "want": "add it to the playbook once the General Counsel agrees",
+      "so": "stop relearning it on every contract",
+      "often": "A few times a year",
+      "pain": "The rule lives in approvers' heads",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    {
+      "id": "J6",
+      "when": "the business owner asks for a date",
+      "want": "see where the contract stands and who it waits on",
+      "so": "give a real date, not a guess",
+      "often": "Every deal with a deadline",
+      "pain": "Status is spread across email threads",
+      "ev": "assumed"
+    }
+  ],
+  "flows": [
+    {
+      "id": "F1",
+      "name": "A vendor contract, from received to ready to sign (today)",
+      "trigger": "Acme's MSA arrives by email with a Friday deadline",
+      "outcome": "a redline package every approver has approved, sent to the vendor",
+      "steps": [
+        {
+          "who": "Business owner",
+          "place": "email",
+          "what": "Sends the vendor's contract and the deadline to legal.",
+          "time": "Minutes",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "region": "document",
+          "what": "Reads all 14 sections against the playbook.",
+          "time": "About two days",
+          "weight": 8,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "place": "spreadsheet",
+          "what": "Lists each deviation, its rule and its risk by hand.",
+          "time": "Part of those two days",
+          "weight": 2,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "region": "changes",
+          "what": "Drafts a redline for every deviation in tracked changes.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Senior counsel",
+          "place": "email",
+          "what": "Works out who must approve and sends it to the General Counsel, Security and Finance.",
+          "time": "Same day",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            1,
+            2
+          ]
+        },
+        {
+          "who": "Approvers",
+          "place": "email",
+          "what": "The review waits for three people to read it.",
+          "time": "Days",
+          "weight": 4,
+          "kind": "wait",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Head of Security",
+          "place": "email",
+          "what": "Sends it back: ask for the SOC 2 Type II report and pen-test summary first (the fourth time).",
+          "time": "About a week lost",
+          "weight": 5,
+          "kind": "approval",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "place": "email",
+          "what": "Sends the approved redline package to the vendor.",
+          "time": "Minutes",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        }
+      ],
+      "timeGoes": "Reading against the playbook (about two days) and send-backs (about a week each). In the six imported reviews: a 10.5-day median to signature, a third approved first time, and 29 days lost to send-backs, three of them for the same missing security evidence. These are the workshop's fictional figures."
+    }
+  ],
+  "placement": {
+    "surface": {
+      "region": "thread",
+      "also": [
+        "checklist",
+        "changes",
+        "document",
+        "approvals"
+      ],
+      "text": "The copilot is a colleague on the matter, not a separate chat. Its thread sits in the matter workspace with the plan on a rail beside it; opening the review table or the contract puts it next to the thread, so the lawyer edits a redline and watches the copilot re-check it in one glance. Its work lands in the workspace's own objects: ticks in the checklist, rows and redlines in the review table, cite chips that open the document on the passage, a route in Approvals.",
+      "notThis": "A legal chatbot in a side panel that can't see which matter is open, wants clauses pasted in, answers in paragraphs, and leaves the lawyer to copy its suggestions into Word.",
+      "ev": "sourced",
+      "src": [
+        3,
+        4
+      ]
+    },
+    "reads": [
+      {
+        "text": "Who is asking (Maya, Senior Counsel) and every open matter",
+        "detail": "useAgentContext(context.user) and (context.matters) in src/copilot/useAppContext.ts",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "The open matter: its plan, findings, redlines, reasons and approvals",
+        "detail": "context.activeMatter, built in src/lib/app-context.ts",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "The rules a person published (PB-SEC-01 after Rachel's click)",
+        "detail": "context.learnedRules",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "The Analytics figures and the decision log",
+        "detail": "context.analytics, from the tested functions in src/lib/analytics.ts",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "Text people typed, fenced as quoted data so it is never read as instructions",
+        "detail": "src/lib/app-context.ts (quotedText)",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "does": [
+      {
+        "name": "readMatter",
+        "text": "Opens a matter's contract and its deal terms.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "runPlanTask",
+        "text": "Works one checklist task and ticks it in shared state; refuses before the plan is approved and runs tasks in plan order.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "updateRedline",
+        "text": "Drafts or revises a redline, never over the lawyer's own edit.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "recheckRedline",
+        "text": "Re-checks an edited redline against its rule.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "setDeviationReason",
+        "text": "Records the lawyer's reason for a position below the playbook.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "readCollection · fillCollectionCell",
+        "text": "Answers one question across a collection of contracts, one cited cell per call.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "renders": [
+      {
+        "name": "showFindings",
+        "text": "Findings cited to the exact passage; each cite chip opens the document viewer on it.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "showRedlines",
+        "text": "Redlines as a blackline of the vendor's own words.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "showRecheck",
+        "text": "The re-check card after a human edit: the rule, and whether it still deviates.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "useRenderTool \"*\"",
+        "text": "Every tool call folded into one live \"Working\" line instead of a wall of tool output.",
+        "detail": "src/copilot/useWorkRows.tsx (a renderer for existing tools, not a new tool)",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "waits": [
+      {
+        "name": "proposePlan",
+        "text": "The 17-task plan as a card: Approve plan or Not yet. Nothing runs before the click.",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "requestApproval",
+        "text": "Send for approval to Rachel, Jordan and Elena, with the rule behind each approver and Maya's reason. Nothing is sent until the click; nothing goes to the vendor until every approver approves.",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "Approvals panel · Publish",
+        "text": "Approve, send back, and Rachel's Publish to the copilot are people's clicks in the app, not tools the agent can call.",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      }
+    ],
+    "shared": [
+      {
+        "text": "The review table: one row per finding, with a redline both the lawyer and the copilot edit. The store keeps a human edit and the copilot can't overwrite it.",
+        "detail": "src/lib/store.ts, src/components/panels/ReviewTable.tsx",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "A human edit is posted to the copilot as a quiet event and starts a run; if the agent is busy it waits in a queue, latest text wins.",
+        "detail": "useAgent + useCopilotKit in src/copilot/useTellCopilot.ts and edit-queue.ts. App-owned state was chosen over AG-UI agent state because a state change doesn't start a run with BuiltInAgent.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "learns": [
+      {
+        "text": "Approver send-backs with their comments: Jordan's SOC 2 ask matches three past send-backs, so Insights proposes PB-SEC-01 and Rachel publishes it; the next plan carries it.",
+        "detail": "src/lib/learning.ts, src/components/panels/InsightsPanel.tsx",
+        "ev": "sourced",
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "text": "In production, CopilotKit Intelligence's Automatic Learning groups real threads into a learning space, surfaces Insights and proposes skills a person reviews and publishes. Open Harvey keeps it behind an off-by-default switch.",
+        "detail": "src/lib/intelligence.ts. Gated decisions are also sent as Trajectory events (src/lib/trajectory-events.ts), but Trajectories are off on hosted Intelligence today, so don't count on them yet.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ]
+  },
+  "checklist": [
+    {
+      "id": "C1",
+      "what": "Put the open matter in the copilot's context",
+      "why": "The lawyer never pastes a clause: the copilot already knows which contract is open, its plan and its redlines.",
+      "how": "Register the user, the matters, the open matter, published rules and analytics, each as its own entry.",
+      "piece": "useAgentContext",
+      "docs": "https://docs.copilotkit.ai/agent-app-context",
+      "file": "starters/open-harvey/src/copilot/useAppContext.ts",
+      "done": "Asking \"What's left on Acme?\" answers from the open matter's plan and redlines, with nothing pasted."
+    },
+    {
+      "id": "C2",
+      "what": "Make the review plan a card the lawyer approves",
+      "why": "The work is visible before it happens, and the lawyer owns the judgment.",
+      "how": "Register proposePlan as a human-in-the-loop tool with Approve plan and Not yet.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useProposePlan.tsx",
+      "done": "No checklist task runs before Approve plan; Not yet leaves the matter untouched."
+    },
+    {
+      "id": "C3",
+      "what": "Turn each checklist task into a tool that ticks it",
+      "why": "The checklist is the copilot's plan made visible, worked live in the workspace.",
+      "how": "A runPlanTask frontend tool whose handler reads live state from the store and refuses before the plan is approved.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/copilot/useReviewTools.ts",
+      "done": "The checklist ticks task by task; a unit test shows runPlanTask refusing before approval."
+    },
+    {
+      "id": "C4",
+      "what": "Draw findings and redlines as the workspace's own objects",
+      "why": "Lawyers trust what they can check: every finding points at a passage, every redline strikes the vendor's own words.",
+      "how": "Register showFindings, showRedlines and showRecheck as components the model calls with typed args.",
+      "piece": "useComponent",
+      "docs": "https://docs.copilotkit.ai/generative-ui/your-components/display-only",
+      "file": "starters/open-harvey/src/copilot/useGenerativeUI.tsx",
+      "done": "Each finding has a cite chip that opens the document on the passage; no finding exists only as chat prose."
+    },
+    {
+      "id": "C5",
+      "what": "Share the redline, and let the copilot hear the lawyer's edit",
+      "why": "One artifact, two writers: the lawyer's judgment wins and the copilot re-checks it.",
+      "how": "Keep redlines in the app store, send them as context, write them through updateRedline, and post each committed edit as a message that starts a run.",
+      "piece": "useAgent + useCopilotKit",
+      "docs": "https://docs.copilotkit.ai/shared-state",
+      "file": "starters/open-harvey/src/copilot/useTellCopilot.ts",
+      "done": "Rewriting the §8.2 redline makes the copilot say it re-checked, ask for a reason, and never revert the edit."
+    },
+    {
+      "id": "C6",
+      "what": "Gate the send for approval",
+      "why": "Nothing leaves the lawyer's hands without a click that shows exactly who gets it and why.",
+      "how": "A requestApproval human-in-the-loop card listing each approver with the rule that adds them and the lawyer's reason.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useRequestApproval.tsx",
+      "done": "The card names Rachel, Jordan and Elena with PB-APR-01/02/03, and nothing is sent until Send for approval."
+    },
+    {
+      "id": "C7",
+      "what": "Keep routing and every figure in tested code",
+      "why": "The model picks the tool; the code does the math, so the route and the $720,000 are auditable.",
+      "how": "Tool handlers call pure functions (routeApprovals, totalContractValue, the playbook checks) that have unit tests.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/lib/review.ts",
+      "done": "Unit tests pin Acme: seven deviations, $720,000 total contract value, CFO on the route."
+    },
+    {
+      "id": "C8",
+      "what": "Record send-backs and turn repeats into a rule a person publishes",
+      "why": "The unwritten rule (security evidence) is what costs a week each time.",
+      "how": "Store each send-back with who, comment and time; propose a rule from repeats; publish only on the General Counsel's click. Intelligence stays behind an off-by-default switch.",
+      "piece": "CopilotKit Intelligence",
+      "docs": "https://docs.copilotkit.ai/learning",
+      "file": "starters/open-harvey/src/lib/learning.ts",
+      "done": "Jordan's send-back surfaces PB-SEC-01 in Insights, and the next plan includes it only after Publish."
+    },
+    {
+      "id": "C9",
+      "what": "Watch the context and the tool calls in the web inspector while you build",
+      "why": "You see exactly what the copilot was told about the open matter and which task tool it called, before a lawyer does.",
+      "how": "Set enableInspector on CopilotKitProvider while developing (Open Harvey turns it off for the demo): it shows the agent, AG-UI events, frontend tools and shared context per run.",
+      "piece": "CopilotKit web inspector",
+      "docs": "https://docs.copilotkit.ai/inspector",
+      "file": "starters/open-harvey/src/components/LegalApp.tsx",
+      "done": "During a review, the inspector shows the active-matter context entry and each runPlanTask call in plan order."
+    }
+  ],
+  "validate": {
+    "who": [
+      "A commercial or in-house counsel who reviews vendor contracts every week",
+      "The General Counsel who owns the playbook and approves deviations",
+      "A security or finance approver who receives routed reviews"
+    ],
+    "ask": [
+      "Do you read the contract first or the checklist first? (decides whether the plan or the document opens first)",
+      "Which deviations would you never want a copilot to draft a redline for?",
+      "Where do approvals reach you today, and would you approve in the app, or only in email or Slack?",
+      "What would make you trust a cited finding without re-reading the clause?",
+      "How is your week really split between reading, redlining, chasing approvals and answering questions?"
+    ]
+  },
+  "sources": [
+    {
+      "id": 1,
+      "title": "The story: \"Signed by Friday\"",
+      "publisher": "this workshop",
+      "url": "docs/story.md",
+      "supports": "The cast, today's process (two days reading, a spreadsheet of deviations, an email chain, send-backs a week each) and the fictional figures.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 2,
+      "title": "Open Harvey: contract-review copilot (demo spec)",
+      "publisher": "this workshop",
+      "url": "docs/legal-demo-spec.md",
+      "supports": "The playbook rule ids, the routing rules, the approvers and the 17-task plan.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 3,
+      "title": "Open Harvey starter: copilot hooks and panels",
+      "publisher": "this workshop",
+      "url": "starters/open-harvey/src/",
+      "supports": "Every hook, tool and component name on this map, and which file each lives in.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 4,
+      "title": "Open Harvey product and design notes",
+      "publisher": "this workshop",
+      "url": "starters/open-harvey/PRODUCT.md",
+      "supports": "The copilot as a colleague on the matter, with its thread at the centre and its plan on a rail.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 5,
+      "title": "Track changes in Word",
+      "publisher": "Microsoft Support",
+      "url": "https://support.microsoft.com/en-us/office/track-changes-in-word-197ba630-0f5f-4a8e-9a77-3712475e806a",
+      "supports": "Tracked changes mark who inserted or deleted what, and each change can be accepted or rejected.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 6,
+      "title": "Open Harvey: the feature inventory",
+      "publisher": "this workshop",
+      "url": "docs/open-harvey-features.md",
+      "supports": "Review and redlining inside Word is how the category works today; the review table's blackline is the in-app equivalent.",
+      "accessed": "2026-11-05"
+    }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  /* /functional-copilot is the root; /user-map is its step 1, Research. Same strip in all five skills. */
+  var STEPS = [
+    { n: "1", label: "Research", cmd: "/user-map" },
+    { n: "2", label: "Context & access", cmd: "/agent-context" },
+    { n: "3", label: "Spec & build", cmd: "/functional-copilot" },
+    { n: "4", label: "Deploy", cmd: "/deploy" },
+    { n: "5", label: "Secure & govern", cmd: "/secure-governance" }
+  ];
+  var DOCS = "https://docs.copilotkit.ai/";
+  var ROWS = [
+    { key: "surface", label: "Where it lives", q: "The panel or surface it occupies, inside the workspace", piece: "Your own panel on the v2 hooks (CopilotSidebar or CopilotChat only where a chat fits)", docs: DOCS + "custom-look-and-feel/headless-ui" },
+    { key: "reads", label: "What it reads", q: "The selection, the open object, the position: sent with every run", piece: "useAgentContext", docs: DOCS + "agent-app-context" },
+    { key: "does", label: "What it can do", q: "Actions in the app, run in the browser with the user's session", piece: "useFrontendTool", docs: DOCS + "frontend-tools" },
+    { key: "renders", label: "What it renders", q: "Generative UI: its work drawn as the workspace's own objects", piece: "useComponent", docs: DOCS + "generative-ui/your-components/display-only" },
+    { key: "waits", label: "What waits for a person", q: "Every write, send and approval pauses for a click", piece: "useHumanInTheLoop", docs: DOCS + "human-in-the-loop" },
+    { key: "shared", label: "What both edit", q: "The state the user and the agent share, and who wins", piece: "useAgent (AG-UI agent state), or app state through useAgentContext + useFrontendTool", docs: DOCS + "shared-state" },
+    { key: "learns", label: "What it learns from", q: "Corrections people make, turned into skills a person publishes", piece: "CopilotKit Intelligence: Automatic Learning", docs: DOCS + "learning" }
+  ];
+  /* Route (d): the copilot lives in Slack or Teams through the Channels SDK, so the rows change. */
+  var ROWS_CHAT = [
+    { key: "surface", label: "Where it lives", q: "The conversation it answers in: a Slack or Teams channel, thread or DM", piece: "Channels SDK (createChannel)", docs: DOCS + "slack" },
+    { key: "reads", label: "What it reads", q: "The thread's messages, who sent them, and the record they're about", piece: "thread.runAgent({ context }) + the sender's identity", docs: DOCS + "reference/channels" },
+    { key: "does", label: "What it can do", q: "Actions, run on the server because there's no browser behind a message", piece: "defineTool in the runtime · defineChannelTool", docs: DOCS + "server-tools" },
+    { key: "renders", label: "What it renders", q: "Messages it posts: cards, fields, tables and buttons", piece: "Channels UI components via thread.post", docs: DOCS + "reference/channels" },
+    { key: "waits", label: "What waits for a person", q: "Buttons: who may answer, and nothing is written until the click", piece: "thread.awaitChoice({ answerableBy }) · Button onClick", docs: DOCS + "slack/interactive" },
+    { key: "shared", label: "What both edit", q: "The record on the server, keyed by request, so chat and web edit the same thing", piece: "a StateStore or your database", docs: DOCS + "slack/persistence-and-scaling" },
+    { key: "learns", label: "What it learns from", q: "Corrections people make, turned into skills a person publishes", piece: "CopilotKit Intelligence: Automatic Learning", docs: DOCS + "learning" }
+  ];
+  var KIND = { work: "Work", handoff: "Handoff", approval: "Approval", wait: "Waiting" };
+
+  var root = document.getElementById("map");
+  var data;
+  try { data = JSON.parse(document.getElementById("user-map-data").textContent); }
+  catch (e) { root.appendChild(h("p", { class: "err" }, "The map data is not valid JSON: " + e.message)); return; }
+
+  /* storage: optional; the page works without it */
+  var store = null;
+  try { var k = "__user_map__"; window.localStorage.setItem(k, k); window.localStorage.removeItem(k); store = window.localStorage; } catch (e) { store = null; }
+  function sget(key) { if (!store) return null; try { return store.getItem(key); } catch (e) { return null; } }
+  function sset(key, v) { if (!store) return; try { if (v === null) store.removeItem(key); else store.setItem(key, v); } catch (e) {} }
+
+  function h(tag, attrs) {
+    var el = document.createElement(tag), i, kid;
+    if (attrs) for (var a in attrs) {
+      if (!Object.prototype.hasOwnProperty.call(attrs, a) || attrs[a] == null || attrs[a] === false) continue;
+      if (a === "class") el.className = attrs[a];
+      else if (a.slice(0, 2) === "on") el.addEventListener(a.slice(2), attrs[a]);
+      else el.setAttribute(a, attrs[a] === true ? "" : attrs[a]);
+    }
+    for (i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, kid) {
+    if (kid == null || kid === false) return;
+    if (Array.isArray(kid)) { kid.forEach(function (k) { add(el, k); }); return; }
+    el.appendChild(typeof kid === "object" ? kid : document.createTextNode(String(kid)));
+  }
+  function arr(x) { return Array.isArray(x) ? x : (x ? [x] : []); }
+  function safeUrl(u) { return /^https?:\/\//i.test(String(u || "")) ? u : null; }
+  function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60); }
+
+  var meta = data.meta || {};
+  var KEY = "user-map/" + slug((meta.role || "") + "-" + (meta.app || "") + "-" + (meta.date || ""));
+  var srcIds = {};
+  arr(data.sources).forEach(function (s) { srcIds[s.id] = s; });
+
+  /* evidence chips */
+  function ev(item) {
+    if (!item || !item.ev) return null;
+    if (item.ev === "confirmed") return h("span", { class: "ev confirmed", title: item.by ? "Confirmed by " + item.by : "Confirmed with a real user" }, "Confirmed");
+    if (item.ev === "sourced") {
+      var ids = arr(item.src);
+      if (!ids.length) return h("span", { class: "ev assumed", title: "Marked sourced but no source given" }, "Assumed");
+      return ids.map(function (id) {
+        var s = srcIds[id];
+        return h("a", { class: "ev sourced", href: "#src-" + id, title: s ? s.title : "Source " + id }, "[" + id + "]");
+      });
+    }
+    return h("span", { class: "ev assumed", title: "Not confirmed yet: check it with real users" }, "Assumed");
+  }
+  function cls(item, base) { return (base || "") + (item && item.ev === "assumed" ? " assumed" : ""); }
+
+  /* tally evidence across the whole map */
+  var tally = { sourced: 0, assumed: 0, confirmed: 0 }, assumedList = [];
+  (function walk(x, where) {
+    if (Array.isArray(x)) { x.forEach(function (y) { walk(y, where); }); return; }
+    if (!x || typeof x !== "object") return;
+    if (x.ev && tally.hasOwnProperty(x.ev)) {
+      var e = x.ev === "sourced" && !arr(x.src).length ? "assumed" : x.ev;
+      tally[e]++;
+      if (e === "assumed") assumedList.push({ where: where, text: x.text || x.what || x.label || x.name || x.summary || ([x.when, x.want].filter(Boolean).join(", ")) || "" });
+    }
+    for (var key in x) if (key !== "sources" && key !== "checklist" && key !== "validate") walk(x[key], where || key);
+  })(data, "");
+
+  function section(id, num, title, lede) {
+    var s = h("section", { class: "s", id: id, "aria-labelledby": id + "-h" },
+      h("div", { class: "shead" }, h("span", { class: "num" }, num), h("h2", { id: id + "-h" }, title), lede ? h("p", null, lede) : null));
+    root.appendChild(s);
+    return s;
+  }
+
+  /* ---------- the top: where this sits, one headline, role → software → copilot ---------- */
+  var top = h("header", { class: "top" });
+  top.appendChild(h("p", { class: "sroot", style: "margin:0" }, "functional-copilot"));
+  top.appendChild(h("ol", { class: "suite5", "aria-label": "Where this skill sits in functional-copilot" },
+    STEPS.map(function (st, i) {
+      return h("li", null, h("span", { class: "st" + (i === 0 ? " now" : ""), title: st.cmd, "aria-current": i === 0 ? "step" : null }, h("b", null, st.n), st.label));
+    }),
+    h("li", null, h("span", { class: "st learn", title: "CopilotKit Intelligence" }, "Learn"))));
+  top.appendChild(h("h1", null, meta.headline || ((meta.role || "Role") + " in " + (meta.app || "their software"))));
+  var mp = meta.path || {}, SW0 = data.software || {}, S0 = (data.placement && data.placement.surface) || {};
+  var surfName = (arr(SW0.regions).filter(function (r) { return r.id === S0.region; })[0] || {}).name || "Copilot";
+  function clip(t, n) { t = String(t || ""); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : t; }
+  var PC = [
+    { k: "Role", href: "#role", t: meta.role, s: mp.role || meta["function"] },
+    { k: "Software", href: "#software", t: meta.app, s: mp.software || (SW0.pattern || {}).name },
+    { k: "Copilot placement", href: "#placement", t: surfName, s: mp.copilot || clip(S0.text, 110), cp: true }
+  ];
+  var rp = h("ol", { class: "rpath", "aria-label": "Role, software, copilot placement" });
+  PC.forEach(function (c, i) {
+    if (i) rp.appendChild(h("li", { class: "arr", "aria-hidden": "true" }, "→"));
+    rp.appendChild(h("li", { class: "pc" + (c.cp ? " cp" : "") }, h("a", { href: c.href },
+      h("span", { class: "pk" }, c.k), h("span", { class: "pt" }, c.t || ""), h("span", { class: "ps" }, c.s || ""))));
+  });
+  top.appendChild(rp);
+  top.appendChild(h("p", { class: "scrollhint" }, h("a", { href: "#glance" }, "The full map ↓")));
+  root.appendChild(top);
+
+  /* ---------- below the fold: the detail ---------- */
+  var glance = h("section", { id: "glance", "aria-label": "About this map" });
+  if (meta.oneLine) glance.appendChild(h("p", { class: "oneline" }, meta.oneLine));
+  var metaRows = [
+    ["Function", meta["function"]], ["Works in", meta.app], ["Shape", meta.shape], ["Copilot built in", meta.building],
+    ["Date", meta.date], ["Prepared for", meta.preparedFor],
+    ["Evidence", tally.sourced + " sourced · " + tally.assumed + " assumed · " + tally.confirmed + " confirmed"]
+  ];
+  glance.appendChild(h("dl", { class: "meta" }, metaRows.filter(function (r) { return r[1]; }).map(function (r) {
+    return h("div", { class: String(r[1]).length > 60 ? "wide" : null }, h("dt", null, r[0]), h("dd", null, r[1]));
+  })));
+  glance.appendChild(h("div", { class: "legend" },
+    h("span", { class: "ev sourced" }, "[1]"), "a source backs it",
+    h("span", { class: "ev assumed" }, "Assumed"), "not checked yet",
+    h("span", { class: "ev confirmed" }, "Confirmed"), "a real user said so",
+    meta.research === "no-web" ? h("span", null, "· No web research was available for this map, so most of it is Assumed.") : null));
+  root.appendChild(glance);
+
+  var PATH = [["role", "Role"], ["software", "Software"], ["pattern", "UI pattern"], ["jobs", "Jobs to be done"], ["flows", "Flows"], ["placement", "Copilot placement"]];
+  root.appendChild(h("nav", { class: "path", "aria-label": "The map" }, h("ol", null, PATH.map(function (p, i) {
+    return h("li", null, h("a", { href: "#" + p[0] }, h("span", { class: "n" }, "0" + (i + 1)), p[1]));
+  }))));
+
+  /* ---------- 01 role ---------- */
+  var R = data.role || {};
+  var s1 = section("role", "01", "The role", "Who does this work, what they're measured on, and where their day goes.");
+  var roleLeft = h("div", { class: "card" }, h("p", null, R.summary || ""),
+    arr(R.measuredOn).length ? [h("h3", { style: "margin-top:12px" }, "Measured on"), h("ul", { class: "plain" }, arr(R.measuredOn).map(function (m) { return h("li", null, m.text, ev(m)); }))] : null);
+  var roleRight = h("div", { class: "card" }, h("h3", null, "Where the day goes"),
+    h("div", { class: "day" }, arr(R.day).map(function (d) {
+      var pct = Math.max(0, Math.min(100, Number(d.share) || 0));
+      return h("div", { class: "dayrow" }, h("span", null, d.label, ev(d)),
+        h("span", { class: "track" + (d.ev === "assumed" ? " assumed" : ""), role: "img", "aria-label": pct + " percent" }, h("i", { style: "width:" + pct + "%" })),
+        h("span", { class: "pct" }, pct + "%"));
+    })),
+    arr(R.people).length ? [h("h3", { style: "margin-top:16px" }, "Works with"), h("ul", { class: "plain" }, arr(R.people).map(function (p) { return h("li", null, h("b", null, p.name), " · ", p.relation, ev(p)); }))] : null);
+  s1.appendChild(h("div", { class: "grid2" }, roleLeft, roleRight));
+
+  /* ---------- 02 software ---------- */
+  var SW = data.software || {};
+  var s2 = section("software", "02", "The software", "What they spend the day in, and what sits around it.");
+  var prim = SW.primary || {};
+  s2.appendChild(h("div", { class: "grid2" },
+    h("div", { class: cls(prim, "card") }, h("p", { class: "eyebrow", style: "margin:0 0 6px" }, "Main workspace"),
+      h("p", { style: "font:500 22px/1.25 var(--serif);margin:0 0 6px" }, prim.name || "", ev(prim)), h("p", { class: "muted", style: "margin:0" }, prim.why || "")),
+    h("div", { class: "card" }, h("p", { class: "eyebrow", style: "margin:0 0 6px" }, "Around it"),
+      h("ul", { class: "plain" }, arr(SW.around).map(function (a) { return h("li", null, h("b", null, a.name), " · ", a.why, ev(a)); })))));
+
+  /* ---------- 03 pattern ---------- */
+  var P = SW.pattern || {}, L = SW.layout || {}, REG = arr(SW.regions);
+  var regById = {}; REG.forEach(function (r) { regById[r.id] = r; });
+  function wire(cp) {
+    var areas = arr(L.areas);
+    var g = h("div", { class: "wire", role: "img", "aria-label": (cp ? "Where the copilot sits in " : "Layout of ") + (P.name || "the workspace") });
+    g.style.gridTemplateColumns = L.columns || "repeat(" + ((areas[0] || "").split(/\s+/).length || 1) + ", minmax(0,1fr))";
+    if (L.rows) g.style.gridTemplateRows = L.rows;
+    if (areas.length) g.style.gridTemplateAreas = areas.map(function (r) { return '"' + r.replace(/[^\w\s.-]/g, "") + '"'; }).join(" ");
+    var surf = cp ? (data.placement && data.placement.surface) || {} : {};
+    var also = arr(surf.also);
+    REG.forEach(function (r) {
+      var isCp = cp && r.id === surf.region, isAlso = cp && also.indexOf(r.id) >= 0;
+      var isNew = !!r["new"] && !isCp && !isAlso;
+      var box = h("div", { class: "rg" + (isCp ? " cp" : "") + (isAlso ? " also" : "") + (isNew ? " new" : "") },
+        isCp ? h("span", { class: "badge" }, "Copilot") : null,
+        isAlso ? h("span", { class: "badge" }, "Lands here") : null,
+        isNew ? h("span", { class: "badge", title: "Not in today's software: the copilot adds it" }, "New") : null,
+        h("b", null, r.name), h("span", { class: "hd" }, isNew ? "" : (r.holds || "")));
+      if (/^[A-Za-z][\w-]*$/.test(r.id || "")) box.style.gridArea = r.id;
+      g.appendChild(box);
+    });
+    return g;
+  }
+  var s3 = section("pattern", "03", "The UI pattern: " + (P.name || ""), "The shape of the workspace: its regions, the object of work, and what the user selects.");
+  s3.appendChild(h("div", { class: "grid2" },
+    h("div", null, wire(false), h("p", { class: "wirecap" }, "A schematic of the pattern, not a picture of any product.")),
+    h("div", { class: cls(P, "card") }, h("p", null, P.summary || "", ev(P)),
+      h("dl", { class: "ck", style: "margin-top:10px" },
+        h("dt", null, "Object of work"), h("dd", null, P.object || ""),
+        h("dt", null, "Selection"), h("dd", null, P.selection || ""),
+        h("dt", null, "Open at once"), h("dd", null, P.open || "")))));
+  var rt = h("table", { class: "t", style: "margin-top:14px" },
+    h("thead", null, h("tr", null, h("th", null, "Region"), h("th", null, "What it holds"), h("th", null, "What the user does there"))),
+    h("tbody", null, REG.map(function (r) {
+      return h("tr", { class: r.ev === "assumed" ? "assumed" : null },
+        h("td", { "data-l": "Region" }, h("b", null, r.name), r["new"] ? h("span", { class: "newtag" }, "New") : null, ev(r)), h("td", { "data-l": "Holds" }, r.holds || ""), h("td", { "data-l": "Does" }, r.does || ""));
+    })));
+  s3.appendChild(rt);
+
+  /* ---------- 04 jobs ---------- */
+  var s4 = section("jobs", "04", "Jobs to be done", "When this happens, I want to do this, so I can get that: in the user's words. The filled card is the copilot's first job.");
+  s4.appendChild(h("div", { class: "cards" }, arr(data.jobs).map(function (j) {
+    return h("article", { class: cls(j, "card job") + (j.first ? " first" : "") },
+      j.first ? h("span", { class: "starthere" }, "Start here") : null,
+      h("span", { class: "jid" }, j.id || ""),
+      h("p", { class: "stmt", style: "margin:0" }, "When ", h("em", null, j.when), ", I want to ", h("em", null, j.want), ", so I can ", j.so, ".", ev(j)),
+      h("dl", null, j.often ? [h("dt", null, "How often"), h("dd", null, j.often)] : null, j.pain ? [h("dt", null, "What's slow"), h("dd", null, j.pain)] : null));
+  })));
+
+  /* ---------- 05 flows ---------- */
+  var s5 = section("flows", "05", "Key flows", "Step by step: where the time goes, and where work changes hands or waits for an approval.");
+  s5.appendChild(h("div", { class: "legend", style: "margin:-4px 0 14px" },
+    h("span", { class: "kind approval" }, "Approval"), "a person decides",
+    h("span", { class: "kind handoff" }, "Handoff"), "work changes hands",
+    h("span", { class: "kind wait" }, "Waiting"), "nothing moves"));
+  arr(data.flows).forEach(function (f) {
+    var maxW = Math.max.apply(null, arr(f.steps).map(function (s) { return Number(s.weight) || 1; }).concat([1]));
+    s5.appendChild(h("div", { class: "flow", id: "flow-" + slug(f.id || f.name) },
+      h("div", { class: "flowhead" }, h("h3", null, f.name || ""), h("span", { class: "io" }, (f.trigger || "") + "  →  " + (f.outcome || ""))),
+      h("ol", { class: "steps" }, arr(f.steps).map(function (s) {
+        var reg = regById[s.region];
+        var w = Math.round(((Number(s.weight) || 1) / maxW) * 100);
+        var kind = KIND[s.kind] ? s.kind : "work";
+        return h("li", { class: s.ev === "assumed" ? "assumed" : null },
+          h("div", { class: "stepbody" },
+            h("div", null, h("span", { class: "who" }, s.who || ""), reg ? h("span", { class: "where" }, " · in " + reg.name) : ((s.place || s.region) ? h("span", { class: "where" }, " · " + (s.place || s.region)) : null),
+              h("div", null, s.what || "", ev(s))),
+            h("div", { class: "timecol" }, s.time || "", h("div", { class: "track" + (s.ev === "assumed" ? " assumed" : ""), "aria-hidden": "true" }, h("i", { style: "width:" + w + "%" }))),
+            h("span", { class: "kind " + kind }, KIND[kind])));
+      })),
+      f.timeGoes ? h("p", { class: "timegoes" }, h("b", null, "Where the time goes: "), f.timeGoes) : null,
+      f.write ? h("p", { class: "timegoes" }, h("b", null, "After the last approval: "), f.write.what || "", f.write.system ? ", in " + f.write.system : "", f.write.who ? ". " + f.write.who : "", ".", ev(f.write)) : null));
+  });
+
+  /* ---------- 06 placement ---------- */
+  var PL = data.placement || {};
+  var s6 = section("placement", "06", "Where the copilot lives", "Inside the app space, where the work happens, not in a chat box beside it. Each row is one CopilotKit piece.");
+  var surf = PL.surface || {};
+  s6.appendChild(h("div", { class: "grid2", style: "margin-bottom:6px" },
+    h("div", null, wire(true), h("p", { class: "wirecap" }, "Filled: where the copilot sits. Outlined (Lands here): where its work shows up.")),
+    h("div", { class: cls(surf, "card") }, h("p", { style: "font:400 16px/1.5 var(--serif)" }, surf.text || "", ev(surf)),
+      surf.notThis ? h("p", { class: "notthis" }, h("b", null, "Not this: "), surf.notThis) : null)));
+  (meta.route === "chat" ? ROWS_CHAT : ROWS).forEach(function (row) {
+    var items = row.key === "surface" ? [] : arr(PL[row.key]);
+    if (row.key === "surface") {
+      var r = regById[surf.region];
+      items = [{ name: r ? r.name : surf.region, text: (arr(surf.also).length ? "Its work lands in: " + arr(surf.also).map(function (id) { return regById[id] ? regById[id].name : id; }).join(", ") + "." : ""), ev: surf.ev, src: surf.src }];
+    }
+    var u = safeUrl(row.docs);
+    s6.appendChild(h("div", { class: "prow" },
+      h("div", null, h("h3", null, row.label), h("p", { class: "q" }, row.q), u ? h("a", { class: "piece", href: u, target: "_blank", rel: "noopener" }, row.piece) : h("span", { class: "piece" }, row.piece)),
+      h("ul", { class: "pitems" }, items.length ? items.map(function (it) {
+        return h("li", { class: it.ev === "assumed" ? "assumed" : null },
+          it.name ? h("span", { class: "tname" }, it.name) : null, it.text, ev(it), it.detail ? h("span", { class: "det" }, it.detail) : null);
+      }) : h("li", { class: "assumed" }, "Not mapped yet."))));
+  });
+
+  /* ---------- 07 checklist ---------- */
+  var CL = arr(data.checklist);
+  var s7 = meta.exists
+    ? section("build", "07", "Verify checklist", "The copilot already exists: check each item in the running app, and fix the gaps. Ticks are saved in this browser only.")
+    : section("build", "07", "Build checklist", "What to build first so the copilot lives where this map says. Ticks are saved in this browser only.");
+  var prog = h("p", { class: "progress", "aria-live": "polite" });
+  s7.appendChild(prog);
+  var list = h("ol", { class: "check" });
+  function refresh() {
+    var n = list.querySelectorAll("input:checked").length;
+    prog.textContent = n + " of " + CL.length + " done" + (store ? "" : " · ticks won't be saved in this browser");
+  }
+  CL.forEach(function (c, i) {
+    var id = "c-" + (c.id || i);
+    var box = h("input", { type: "checkbox", id: id });
+    var li = h("li", null, box,
+      h("div", null,
+        h("label", { class: "what", "for": id }, h("span", { class: "cid" }, c.id || ""), c.what || ""),
+        h("dl", { class: "ck" },
+          h("dt", null, "Why"), h("dd", null, c.why || ""),
+          h("dt", null, "How"), h("dd", null, c.how || "", " ",
+            c.piece ? (safeUrl(c.docs) ? h("a", { class: "piece", href: c.docs, target: "_blank", rel: "noopener" }, c.piece) : h("span", { class: "piece" }, c.piece)) : null,
+            c.file ? [" ", h("code", null, c.file)] : null),
+          h("dt", null, "Done when"), h("dd", null, c.done || ""))));
+    if (sget(KEY + "/" + id) === "1") { box.checked = true; li.className = "done"; }
+    box.addEventListener("change", function () { li.className = box.checked ? "done" : ""; sset(KEY + "/" + id, box.checked ? "1" : null); refresh(); });
+    list.appendChild(li);
+  });
+  s7.appendChild(list);
+  refresh();
+
+  /* ---------- 08 validate ---------- */
+  var V = data.validate || {};
+  var s8 = section("validate", "08", "Check it with two or three real users", "This map is a draft until people who do the job have read it. Walk them through it, then flip what they confirm.");
+  s8.appendChild(h("ul", { class: "who3" }, arr(V.who).map(function (w, i) {
+    var id = "v-" + i, box = h("input", { type: "checkbox", id: id });
+    var li = h("li", null, box, h("label", { "for": id }, h("b", null, "Session " + (i + 1) + ": "), w));
+    if (sget(KEY + "/" + id) === "1") { box.checked = true; li.className = "done"; }
+    box.addEventListener("change", function () { li.className = box.checked ? "done" : ""; sset(KEY + "/" + id, box.checked ? "1" : null); });
+    return li;
+  })));
+  var asks = arr(V.ask);
+  s8.appendChild(h("div", { class: "grid2" },
+    h("div", { class: "card" }, h("h3", null, "Ask them"), h("ol", { class: "asks" }, asks.map(function (a) { return h("li", null, a); }))),
+    h("div", { class: "card assumed" }, h("h3", null, assumedList.length + " things marked Assumed"),
+      assumedList.length ? h("ol", { class: "asks" }, assumedList.slice(0, 14).map(function (a) { return h("li", null, a.text, h("span", { class: "muted small" }, " · " + a.where)); })) : h("p", { class: "muted" }, "None. Everything is sourced or confirmed."),
+      assumedList.length > 14 ? h("p", { class: "muted small", style: "margin-top:6px" }, "and " + (assumedList.length - 14) + " more in the map above.") : null,
+      h("p", { class: "muted small", style: "margin:10px 0 0" }, "When a user confirms one, set its \"ev\" to \"confirmed\" in user-map.json and rebuild."))));
+
+  /* ---------- 09 sources ---------- */
+  var s9 = section("sources", "09", "Sources", meta.research === "no-web" ? "No web research was available; only the sources below were read." : "Every [n] in the map points here. Products are described in our own words.");
+  var SR = arr(data.sources);
+  s9.appendChild(SR.length ? h("ol", { class: "src" }, SR.map(function (s) {
+    var u = safeUrl(s.url);
+    return h("li", { id: "src-" + s.id, value: s.id },
+      u ? h("a", { href: u, target: "_blank", rel: "noopener" }, s.title || u) : h("span", null, s.title || ""),
+      s.publisher ? h("span", { class: "muted" }, " · " + s.publisher) : null,
+      s.supports ? h("div", null, s.supports) : null,
+      h("div", { class: "url" }, (u || s.url || "") + (s.accessed ? " · read " + s.accessed : "")));
+  })) : h("p", { class: "muted" }, "No sources yet: everything above is Assumed."));
+
+  /* ---------- next ---------- */
+  root.appendChild(h("footer", { class: "end" },
+    h("h2", null, "Next: 2 Context & access, in /agent-context"),
+    h("p", { style: "margin:0" }, "Then 3 Spec & build, in /functional-copilot. Both start from ", h("code", null, "docs/copilot/user-map.md"), ": the role, the first job, its shape, the flow and the placement are already answered, so neither asks again what this map settled. Check the map with real users first."),
+    h("p", { class: "fine" }, "Open-source example built with CopilotKit. Products named here are described for illustration; not affiliated with or endorsed by them."),
+    meta.disclaimer ? h("p", { class: "fine", style: "margin-top:6px" }, meta.disclaimer) : null,
+    h("p", { class: "fine", style: "margin-top:6px" }, "Made with /user-map · " + (meta.date || ""))));
+
+  /* ---------- tools ---------- */
+  var themeBtn = document.getElementById("theme");
+  var MODES = ["auto", "light", "dark"], NAMES = { auto: "Auto", light: "Light", dark: "Dark" };
+  var mode = sget("user-map/theme");
+  if (MODES.indexOf(mode) < 0) mode = "auto";
+  function applyTheme() {
+    if (mode === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    themeBtn.textContent = "Theme: " + NAMES[mode];
+  }
+  applyTheme();
+  themeBtn.addEventListener("click", function () {
+    mode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+    sset("user-map/theme", mode === "auto" ? null : mode);
+    applyTheme();
+  });
+  document.getElementById("print").addEventListener("click", function () { window.print(); });
+  if (meta.role) document.title = "User map · " + meta.role;
+})();
+</script>
+</body>
+</html>

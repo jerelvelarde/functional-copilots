@@ -1,0 +1,12 @@
+{
+  "name": "northstar-legal",
+  "private": true,
+  "type": "module",
+  "description": "Northstar Legal: the legal system of record for the Open Harvey on OpenBot demo, served over MCP.",
+  "scripts": {
+    "test": "bun test",
+    "start": "bun server.ts",
+    "reset:friday": "bun reset.ts friday",
+    "reset:fresh": "bun reset.ts fresh"
+  }
+}

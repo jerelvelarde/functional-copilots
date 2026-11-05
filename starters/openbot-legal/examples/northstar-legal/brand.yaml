@@ -1,0 +1,12 @@
+# Northstar Software's legal team, the workshop's fictional company, in Open Harvey.
+# Open-source demo built with CopilotKit and OpenBot. Not affiliated with or endorsed by Harvey.
+#
+# `product_name` is the name the app shows (sidebar, page titles). It is baked into the app at build
+# time by scripts/generate-app-config.ts, so a change here needs a full restart.
+#
+# No `skin:` on purpose. A package theme.css is validated at startup and then applied by nothing, so
+# the black-and-white look, the page title, the favicon and the legal home greeting come from
+# ../../open-harvey-brand.patch instead (see the starter README).
+tenant:
+  id: northstar-legal
+  product_name: Open Harvey

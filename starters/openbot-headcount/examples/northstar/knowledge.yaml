@@ -1,0 +1,13 @@
+# Required by the loader, validated at startup, and read by nothing (docs/configuration.md,
+# "knowledge.yaml"). It only accepts `google-drive` and `microsoft-onedrive` roots, so it cannot point
+# at files in this package, and declaring a Drive folder here would not make Hana read it.
+#
+# Northstar's knowledge reaches Hana two other ways instead:
+#   - The written policy (data/policies.md) is quoted in Hana's system prompt, so every rule can be
+#     cited by id without a lookup.
+#   - The plan, bands and cost model (data/*.json) are served by Northstar HR, the MCP server in
+#     hr-system/, which does every calculation so the model never does arithmetic.
+#
+# In production, point Hana at your real policy source the OpenBot way: connect Google Drive or
+# Notion under Connections and grant its tools to Hana; the package's skills can then name them.
+sources: []

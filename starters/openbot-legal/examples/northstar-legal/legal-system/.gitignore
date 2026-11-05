@@ -1,0 +1,5 @@
+# Northstar Legal's runtime files: the state (reset.ts writes it) and the bearer token (token.ts).
+.state.json
+.state.json.*.tmp
+.env.northstar-legal
+.local-https/

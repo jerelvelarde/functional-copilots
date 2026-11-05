@@ -1,0 +1,770 @@
+{
+  "schema": "user-map/1",
+  "meta": {
+    "role": "Senior counsel",
+    "function": "Legal · vendor contracts",
+    "app": "Word and email",
+    "route": "own-app",
+    "shape": "review against a playbook",
+    "building": "Open Harvey: a web matter workspace that puts the contract, the redlines and the approvals in one place (starters/open-harvey)",
+    "date": "2026-11-05",
+    "preparedFor": "The workshop's legal example (Northstar Software, fictional)",
+    "disclaimer": "Open Harvey is an open-source demo built with CopilotKit, inspired by the patterns of leading legal AI products. Not affiliated with or endorsed by Harvey.",
+    "research": "web",
+    "headline": "A contract copilot that works inside the matter",
+    "path": {
+      "role": "Reviews vendor contracts against the playbook and gets every deviation approved",
+      "software": "Document review: the contract, tracked changes and a checklist; approvals by email",
+      "copilot": "A thread in the matter, with its plan beside it; its work lands in the redlines and approvals"
+    },
+    "oneLine": "A contract copilot that works inside the matter: it reads the open contract and the playbook, works the review checklist live, drafts redlines into the review table, and waits for the lawyer's click before the plan runs and before anything goes to an approver."
+  },
+  "role": {
+    "summary": "Maya Chen is one of two lawyers at Northstar Software, with 41 open vendor contracts. She reads each contract against the playbook, drafts the redlines, and gets every position below the playbook approved by the right people before anything goes back to the vendor. The General Counsel owns the playbook; the business owner owns the deadline.",
+    "measuredOn": [
+      {
+        "text": "Days from contract received to signature (the imported history's median is 10.5 days)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "text": "Reviews approved the first time they're sent (a third, before go-live)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "text": "Days lost to send-backs (29 across six reviews)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      }
+    ],
+    "day": [
+      {
+        "label": "Reading contracts against the playbook",
+        "share": 40,
+        "ev": "assumed"
+      },
+      {
+        "label": "Drafting redlines and negotiating",
+        "share": 25,
+        "ev": "assumed"
+      },
+      {
+        "label": "Chasing approvals over email",
+        "share": 20,
+        "ev": "assumed"
+      },
+      {
+        "label": "Answering the business's contract questions",
+        "share": 15,
+        "ev": "assumed"
+      }
+    ],
+    "people": [
+      {
+        "name": "Dana Kim, business owner",
+        "relation": "sends the contract and the deadline (signed by Friday)",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "name": "Rachel Adler, General Counsel",
+        "relation": "approves any position below the playbook and owns playbook changes (PB-APR-01)",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Jordan Blake, Head of Security",
+        "relation": "approves data, security and customer-data terms (PB-APR-02)",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "name": "Elena Ortiz, CFO",
+        "relation": "approves the spend above $500,000 total contract value (PB-APR-03)",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      }
+    ]
+  },
+  "software": {
+    "primary": {
+      "name": "Microsoft Word with Track Changes",
+      "why": "Where the contract is read and redlined: every insertion and deletion is marked with who made it, and each can be accepted or rejected.",
+      "ev": "sourced",
+      "src": [
+        5,
+        6
+      ]
+    },
+    "around": [
+      {
+        "name": "Email",
+        "why": "Where the contract arrives and where approvals and send-backs happen today, as a chain with Security and Finance.",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "name": "A spreadsheet of deviations",
+        "why": "Where findings get listed by hand while reading.",
+        "ev": "sourced",
+        "src": [
+          1
+        ]
+      },
+      {
+        "name": "The written playbook",
+        "why": "The positions Northstar accepts, one rule per clause, owned by the General Counsel.",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      }
+    ],
+    "pattern": {
+      "name": "Document review",
+      "summary": "The document is the centre. Changes are proposed against the other side's own words and shown as strike-and-insert; comments sit beside the passage they're about; a checklist (the playbook) says what to check. Today the approvals live outside the document, in email.",
+      "object": "One contract, passage by passage (§8.2 Limitation of liability)",
+      "selection": "A passage or clause in the document; in the copilot app, a row of the review table",
+      "open": "One contract, its redlines, and the playbook it's checked against",
+      "ev": "sourced",
+      "src": [
+        2,
+        5
+      ]
+    },
+    "layout": {
+      "columns": "0.75fr 1.35fr 1.35fr",
+      "rows": "1.1fr 1fr 0.75fr",
+      "areas": [
+        "queue thread document",
+        "queue thread changes",
+        "queue checklist approvals"
+      ]
+    },
+    "regions": [
+      {
+        "id": "queue",
+        "name": "Matter queue",
+        "holds": "Contracts waiting, with stage and deadline",
+        "does": "Pick the next contract; see who each one waits on",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "id": "document",
+        "name": "Document viewer",
+        "holds": "The contract as it arrived, with numbered passages",
+        "does": "Read, jump to a clause, check what a finding quotes",
+        "ev": "sourced",
+        "src": [
+          3,
+          5
+        ]
+      },
+      {
+        "id": "changes",
+        "name": "Redlines",
+        "holds": "Replacement text struck against the vendor's words, one per deviation",
+        "does": "Draft, rewrite and accept changes",
+        "ev": "sourced",
+        "src": [
+          3,
+          6
+        ]
+      },
+      {
+        "id": "checklist",
+        "name": "Review checklist",
+        "holds": "The playbook's checks for this contract, in order",
+        "does": "Tick what passes, flag what deviates, with the rule id",
+        "ev": "sourced",
+        "src": [
+          2
+        ]
+      },
+      {
+        "id": "approvals",
+        "name": "Approvals",
+        "holds": "The route, each approver's decision and comment",
+        "does": "Send for approval; read a send-back",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": "thread",
+        "name": "Copilot thread",
+        "holds": "The ask, the plan card, the copilot's three-line summary",
+        "does": "Ask for a review; approve the plan; give a reason",
+        "new": true,
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "J1",
+      "when": "a vendor contract lands in my queue",
+      "want": "have it checked against our playbook, with every deviation cited and a redline drafted",
+      "so": "decide what we accept in minutes, not two days",
+      "often": "41 open vendor contracts",
+      "pain": "Two days reading, plus a hand-made spreadsheet of deviations",
+      "first": true,
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    {
+      "id": "J2",
+      "when": "a position falls below the playbook",
+      "want": "route it to the right approvers by rule, with my reason attached",
+      "so": "get sign-off without an email chain",
+      "often": "Every non-standard contract",
+      "pain": "Working out who must approve, then waiting",
+      "ev": "sourced",
+      "src": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "J3",
+      "when": "an approver sends a review back",
+      "want": "see what they asked and whether it has happened before",
+      "so": "fix it once and stop it coming back",
+      "often": "Three of six past reviews",
+      "pain": "Each send-back cost about a week",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    {
+      "id": "J4",
+      "when": "the business asks what our contracts say about something",
+      "want": "get one answer across the portfolio, with each contract's words quoted",
+      "so": "answer without opening every contract",
+      "often": "Weekly",
+      "pain": "Opening each contract by hand",
+      "ev": "assumed"
+    },
+    {
+      "id": "J5",
+      "when": "the same unwritten rule keeps coming up",
+      "want": "add it to the playbook once the General Counsel agrees",
+      "so": "stop relearning it on every contract",
+      "often": "A few times a year",
+      "pain": "The rule lives in approvers' heads",
+      "ev": "sourced",
+      "src": [
+        1
+      ]
+    },
+    {
+      "id": "J6",
+      "when": "the business owner asks for a date",
+      "want": "see where the contract stands and who it waits on",
+      "so": "give a real date, not a guess",
+      "often": "Every deal with a deadline",
+      "pain": "Status is spread across email threads",
+      "ev": "assumed"
+    }
+  ],
+  "flows": [
+    {
+      "id": "F1",
+      "name": "A vendor contract, from received to ready to sign (today)",
+      "trigger": "Acme's MSA arrives by email with a Friday deadline",
+      "outcome": "a redline package every approver has approved, sent to the vendor",
+      "steps": [
+        {
+          "who": "Business owner",
+          "place": "email",
+          "what": "Sends the vendor's contract and the deadline to legal.",
+          "time": "Minutes",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "region": "document",
+          "what": "Reads all 14 sections against the playbook.",
+          "time": "About two days",
+          "weight": 8,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "place": "spreadsheet",
+          "what": "Lists each deviation, its rule and its risk by hand.",
+          "time": "Part of those two days",
+          "weight": 2,
+          "kind": "work",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "region": "changes",
+          "what": "Drafts a redline for every deviation in tracked changes.",
+          "time": "Hours",
+          "weight": 3,
+          "kind": "work",
+          "ev": "assumed"
+        },
+        {
+          "who": "Senior counsel",
+          "place": "email",
+          "what": "Works out who must approve and sends it to the General Counsel, Security and Finance.",
+          "time": "Same day",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            1,
+            2
+          ]
+        },
+        {
+          "who": "Approvers",
+          "place": "email",
+          "what": "The review waits for three people to read it.",
+          "time": "Days",
+          "weight": 4,
+          "kind": "wait",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Head of Security",
+          "place": "email",
+          "what": "Sends it back: ask for the SOC 2 Type II report and pen-test summary first (the fourth time).",
+          "time": "About a week lost",
+          "weight": 5,
+          "kind": "approval",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        },
+        {
+          "who": "Senior counsel",
+          "place": "email",
+          "what": "Sends the approved redline package to the vendor.",
+          "time": "Minutes",
+          "weight": 1,
+          "kind": "handoff",
+          "ev": "sourced",
+          "src": [
+            1
+          ]
+        }
+      ],
+      "timeGoes": "Reading against the playbook (about two days) and send-backs (about a week each). In the six imported reviews: a 10.5-day median to signature, a third approved first time, and 29 days lost to send-backs, three of them for the same missing security evidence. These are the workshop's fictional figures."
+    }
+  ],
+  "placement": {
+    "surface": {
+      "region": "thread",
+      "also": [
+        "checklist",
+        "changes",
+        "document",
+        "approvals"
+      ],
+      "text": "The copilot is a colleague on the matter, not a separate chat. Its thread sits in the matter workspace with the plan on a rail beside it; opening the review table or the contract puts it next to the thread, so the lawyer edits a redline and watches the copilot re-check it in one glance. Its work lands in the workspace's own objects: ticks in the checklist, rows and redlines in the review table, cite chips that open the document on the passage, a route in Approvals.",
+      "notThis": "A legal chatbot in a side panel that can't see which matter is open, wants clauses pasted in, answers in paragraphs, and leaves the lawyer to copy its suggestions into Word.",
+      "ev": "sourced",
+      "src": [
+        3,
+        4
+      ]
+    },
+    "reads": [
+      {
+        "text": "Who is asking (Maya, Senior Counsel) and every open matter",
+        "detail": "useAgentContext(context.user) and (context.matters) in src/copilot/useAppContext.ts",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "The open matter: its plan, findings, redlines, reasons and approvals",
+        "detail": "context.activeMatter, built in src/lib/app-context.ts",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "The rules a person published (PB-SEC-01 after Rachel's click)",
+        "detail": "context.learnedRules",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "The Analytics figures and the decision log",
+        "detail": "context.analytics, from the tested functions in src/lib/analytics.ts",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "Text people typed, fenced as quoted data so it is never read as instructions",
+        "detail": "src/lib/app-context.ts (quotedText)",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "does": [
+      {
+        "name": "readMatter",
+        "text": "Opens a matter's contract and its deal terms.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "runPlanTask",
+        "text": "Works one checklist task and ticks it in shared state; refuses before the plan is approved and runs tasks in plan order.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "updateRedline",
+        "text": "Drafts or revises a redline, never over the lawyer's own edit.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "recheckRedline",
+        "text": "Re-checks an edited redline against its rule.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "setDeviationReason",
+        "text": "Records the lawyer's reason for a position below the playbook.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "readCollection · fillCollectionCell",
+        "text": "Answers one question across a collection of contracts, one cited cell per call.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "renders": [
+      {
+        "name": "showFindings",
+        "text": "Findings cited to the exact passage; each cite chip opens the document viewer on it.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "showRedlines",
+        "text": "Redlines as a blackline of the vendor's own words.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "showRecheck",
+        "text": "The re-check card after a human edit: the rule, and whether it still deviates.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "name": "useRenderTool \"*\"",
+        "text": "Every tool call folded into one live \"Working\" line instead of a wall of tool output.",
+        "detail": "src/copilot/useWorkRows.tsx (a renderer for existing tools, not a new tool)",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "waits": [
+      {
+        "name": "proposePlan",
+        "text": "The 17-task plan as a card: Approve plan or Not yet. Nothing runs before the click.",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "requestApproval",
+        "text": "Send for approval to Rachel, Jordan and Elena, with the rule behind each approver and Maya's reason. Nothing is sent until the click; nothing goes to the vendor until every approver approves.",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "Approvals panel · Publish",
+        "text": "Approve, send back, and Rachel's Publish to the copilot are people's clicks in the app, not tools the agent can call.",
+        "ev": "sourced",
+        "src": [
+          2,
+          3
+        ]
+      }
+    ],
+    "shared": [
+      {
+        "text": "The review table: one row per finding, with a redline both the lawyer and the copilot edit. The store keeps a human edit and the copilot can't overwrite it.",
+        "detail": "src/lib/store.ts, src/components/panels/ReviewTable.tsx",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      },
+      {
+        "text": "A human edit is posted to the copilot as a quiet event and starts a run; if the agent is busy it waits in a queue, latest text wins.",
+        "detail": "useAgent + useCopilotKit in src/copilot/useTellCopilot.ts and edit-queue.ts. App-owned state was chosen over AG-UI agent state because a state change doesn't start a run with BuiltInAgent.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ],
+    "learns": [
+      {
+        "text": "Approver send-backs with their comments: Jordan's SOC 2 ask matches three past send-backs, so Insights proposes PB-SEC-01 and Rachel publishes it; the next plan carries it.",
+        "detail": "src/lib/learning.ts, src/components/panels/InsightsPanel.tsx",
+        "ev": "sourced",
+        "src": [
+          1,
+          3
+        ]
+      },
+      {
+        "text": "In production, CopilotKit Intelligence's Automatic Learning groups real threads into a learning space, surfaces Insights and proposes skills a person reviews and publishes. Open Harvey keeps it behind an off-by-default switch.",
+        "detail": "src/lib/intelligence.ts. Gated decisions are also sent as Trajectory events (src/lib/trajectory-events.ts), but Trajectories are off on hosted Intelligence today, so don't count on them yet.",
+        "ev": "sourced",
+        "src": [
+          3
+        ]
+      }
+    ]
+  },
+  "checklist": [
+    {
+      "id": "C1",
+      "what": "Put the open matter in the copilot's context",
+      "why": "The lawyer never pastes a clause: the copilot already knows which contract is open, its plan and its redlines.",
+      "how": "Register the user, the matters, the open matter, published rules and analytics, each as its own entry.",
+      "piece": "useAgentContext",
+      "docs": "https://docs.copilotkit.ai/agent-app-context",
+      "file": "starters/open-harvey/src/copilot/useAppContext.ts",
+      "done": "Asking \"What's left on Acme?\" answers from the open matter's plan and redlines, with nothing pasted."
+    },
+    {
+      "id": "C2",
+      "what": "Make the review plan a card the lawyer approves",
+      "why": "The work is visible before it happens, and the lawyer owns the judgment.",
+      "how": "Register proposePlan as a human-in-the-loop tool with Approve plan and Not yet.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useProposePlan.tsx",
+      "done": "No checklist task runs before Approve plan; Not yet leaves the matter untouched."
+    },
+    {
+      "id": "C3",
+      "what": "Turn each checklist task into a tool that ticks it",
+      "why": "The checklist is the copilot's plan made visible, worked live in the workspace.",
+      "how": "A runPlanTask frontend tool whose handler reads live state from the store and refuses before the plan is approved.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/copilot/useReviewTools.ts",
+      "done": "The checklist ticks task by task; a unit test shows runPlanTask refusing before approval."
+    },
+    {
+      "id": "C4",
+      "what": "Draw findings and redlines as the workspace's own objects",
+      "why": "Lawyers trust what they can check: every finding points at a passage, every redline strikes the vendor's own words.",
+      "how": "Register showFindings, showRedlines and showRecheck as components the model calls with typed args.",
+      "piece": "useComponent",
+      "docs": "https://docs.copilotkit.ai/generative-ui/your-components/display-only",
+      "file": "starters/open-harvey/src/copilot/useGenerativeUI.tsx",
+      "done": "Each finding has a cite chip that opens the document on the passage; no finding exists only as chat prose."
+    },
+    {
+      "id": "C5",
+      "what": "Share the redline, and let the copilot hear the lawyer's edit",
+      "why": "One artifact, two writers: the lawyer's judgment wins and the copilot re-checks it.",
+      "how": "Keep redlines in the app store, send them as context, write them through updateRedline, and post each committed edit as a message that starts a run.",
+      "piece": "useAgent + useCopilotKit",
+      "docs": "https://docs.copilotkit.ai/shared-state",
+      "file": "starters/open-harvey/src/copilot/useTellCopilot.ts",
+      "done": "Rewriting the §8.2 redline makes the copilot say it re-checked, ask for a reason, and never revert the edit."
+    },
+    {
+      "id": "C6",
+      "what": "Gate the send for approval",
+      "why": "Nothing leaves the lawyer's hands without a click that shows exactly who gets it and why.",
+      "how": "A requestApproval human-in-the-loop card listing each approver with the rule that adds them and the lawyer's reason.",
+      "piece": "useHumanInTheLoop",
+      "docs": "https://docs.copilotkit.ai/human-in-the-loop",
+      "file": "starters/open-harvey/src/copilot/useRequestApproval.tsx",
+      "done": "The card names Rachel, Jordan and Elena with PB-APR-01/02/03, and nothing is sent until Send for approval."
+    },
+    {
+      "id": "C7",
+      "what": "Keep routing and every figure in tested code",
+      "why": "The model picks the tool; the code does the math, so the route and the $720,000 are auditable.",
+      "how": "Tool handlers call pure functions (routeApprovals, totalContractValue, the playbook checks) that have unit tests.",
+      "piece": "useFrontendTool",
+      "docs": "https://docs.copilotkit.ai/frontend-tools",
+      "file": "starters/open-harvey/src/lib/review.ts",
+      "done": "Unit tests pin Acme: seven deviations, $720,000 total contract value, CFO on the route."
+    },
+    {
+      "id": "C8",
+      "what": "Record send-backs and turn repeats into a rule a person publishes",
+      "why": "The unwritten rule (security evidence) is what costs a week each time.",
+      "how": "Store each send-back with who, comment and time; propose a rule from repeats; publish only on the General Counsel's click. Intelligence stays behind an off-by-default switch.",
+      "piece": "CopilotKit Intelligence",
+      "docs": "https://docs.copilotkit.ai/learning",
+      "file": "starters/open-harvey/src/lib/learning.ts",
+      "done": "Jordan's send-back surfaces PB-SEC-01 in Insights, and the next plan includes it only after Publish."
+    },
+    {
+      "id": "C9",
+      "what": "Watch the context and the tool calls in the web inspector while you build",
+      "why": "You see exactly what the copilot was told about the open matter and which task tool it called, before a lawyer does.",
+      "how": "Set enableInspector on CopilotKitProvider while developing (Open Harvey turns it off for the demo): it shows the agent, AG-UI events, frontend tools and shared context per run.",
+      "piece": "CopilotKit web inspector",
+      "docs": "https://docs.copilotkit.ai/inspector",
+      "file": "starters/open-harvey/src/components/LegalApp.tsx",
+      "done": "During a review, the inspector shows the active-matter context entry and each runPlanTask call in plan order."
+    }
+  ],
+  "validate": {
+    "who": [
+      "A commercial or in-house counsel who reviews vendor contracts every week",
+      "The General Counsel who owns the playbook and approves deviations",
+      "A security or finance approver who receives routed reviews"
+    ],
+    "ask": [
+      "Do you read the contract first or the checklist first? (decides whether the plan or the document opens first)",
+      "Which deviations would you never want a copilot to draft a redline for?",
+      "Where do approvals reach you today, and would you approve in the app, or only in email or Slack?",
+      "What would make you trust a cited finding without re-reading the clause?",
+      "How is your week really split between reading, redlining, chasing approvals and answering questions?"
+    ]
+  },
+  "sources": [
+    {
+      "id": 1,
+      "title": "The story: \"Signed by Friday\"",
+      "publisher": "this workshop",
+      "url": "docs/story.md",
+      "supports": "The cast, today's process (two days reading, a spreadsheet of deviations, an email chain, send-backs a week each) and the fictional figures.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 2,
+      "title": "Open Harvey: contract-review copilot (demo spec)",
+      "publisher": "this workshop",
+      "url": "docs/legal-demo-spec.md",
+      "supports": "The playbook rule ids, the routing rules, the approvers and the 17-task plan.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 3,
+      "title": "Open Harvey starter: copilot hooks and panels",
+      "publisher": "this workshop",
+      "url": "starters/open-harvey/src/",
+      "supports": "Every hook, tool and component name on this map, and which file each lives in.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 4,
+      "title": "Open Harvey product and design notes",
+      "publisher": "this workshop",
+      "url": "starters/open-harvey/PRODUCT.md",
+      "supports": "The copilot as a colleague on the matter, with its thread at the centre and its plan on a rail.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 5,
+      "title": "Track changes in Word",
+      "publisher": "Microsoft Support",
+      "url": "https://support.microsoft.com/en-us/office/track-changes-in-word-197ba630-0f5f-4a8e-9a77-3712475e806a",
+      "supports": "Tracked changes mark who inserted or deleted what, and each change can be accepted or rejected.",
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": 6,
+      "title": "Open Harvey: the feature inventory",
+      "publisher": "this workshop",
+      "url": "docs/open-harvey-features.md",
+      "supports": "Review and redlining inside Word is how the category works today; the review table's blackline is the in-app equivalent.",
+      "accessed": "2026-11-05"
+    }
+  ]
+}

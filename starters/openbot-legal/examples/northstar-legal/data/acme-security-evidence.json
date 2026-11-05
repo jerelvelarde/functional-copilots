@@ -1,0 +1,17 @@
+{
+  "note": "Fictional. Metadata of the SOC 2 Type II report and pen-test summary Acme Cloud sends on Friday morning; the auditor and the testing firm are invented for the workshop.",
+  "matterId": "acme-msa",
+  "receivedAt": "2026-11-06T08:50",
+  "soc2": {
+    "reportType": "Type II",
+    "auditor": "Calder Pike Assurance LLP",
+    "periodStart": "2025-07-01",
+    "periodEnd": "2026-06-30"
+  },
+  "penTest": {
+    "firm": "Bramble Hill Labs",
+    "completedOn": "2026-09-15",
+    "openCritical": 0,
+    "openHigh": 0
+  }
+}

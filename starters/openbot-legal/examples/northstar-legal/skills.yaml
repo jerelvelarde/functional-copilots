@@ -1,0 +1,106 @@
+# Skills this package ships. Each one becomes a deployment skill on boot: it shows in the `/` menu of
+# a Bot that holds it, and an administrator can grant it to other Bots from Admin -> Skills. All three
+# are granted to the Contract Copilot in agents.yaml.
+#
+# What a skill is in OpenBot, because it decides how this file is written:
+#   - An instruction, not a capability. It can only ask a Bot to use tools that Bot was granted.
+#   - Its instruction reaches the model when somebody picks it with `/` in the OpenBot composer.
+#     It is not added to every run, and Slack and Teams have no `/` menu. That is why the Contract
+#     Copilot's system prompt in agents.yaml carries both workflows too: each skill is the fuller
+#     version of one of them for the web composer.
+#   - Its `summary` and `tools` drive per-run tool selection. Once a Bot holds more than 12 granted
+#     tools, OpenBot offers a run only the tools of the skills it picks for that message, plus any
+#     tool no skill declares (server/src/plugins/selection.ts). So each skill below declares every
+#     tool its own flow needs, and they overlap on purpose: get_approval_status is in all three.
+#   - `tools:` declares what a skill needs, as `<serverId>/<toolName>`. Naming a tool grants
+#     nothing. `northstar-legal` is the id connect.ts gives the Northstar Legal MCP server when it
+#     adds it, so these refs match once that server is added and its tools are granted.
+#
+# None of this text is an argument to a tool, so OpenBot's safety floor never reads it. The rules
+# about what may go into an argument (ids and the person's own words, never a rule id) are in the
+# instructions because the model writes the arguments.
+skills:
+  - slug: contract-review
+    title: Review a vendor contract
+    summary: >-
+      Take a vendor contract from landing to ready to sign: propose the review plan for approval,
+      run every playbook check, show the findings with their rule and passage, record the person's
+      own redlines and reasons, and send the review for approval when asked.
+    instructions: |-
+      Review this vendor contract against Northstar's playbook with the Northstar Legal tools, from the plan to sending it for approval. Every finding, count, risk level, amount and approver comes from a tool result; never work one out yourself.
+
+      1. Plan (the person approves it first). Call propose_plan with the matterId (acme-msa, brightwater-order-form, or one list_matters returns). Show the tasks with showChecklist: title "Review plan: <vendor> <kind>", one item per task in the tool's order, the task's title as its text, done false, its rules (plus its learned label, if any) as the note. If a task has a learned label, it comes from a published rule: say so in one line ("It includes a task from the rule Rachel Adler published"). Then call askApproval with the title "Approve the review plan?", a summary giving the number of tasks the tool returned and saying nothing runs until they approve, approveLabel "Approve plan" and rejectLabel "Not yet". If they decline, say nothing ran and stop.
+
+      2. Review. Once approved, call review_contract with the matterId. Show every check with showTable, columns Ref, Passage, Check, Status, Risk, Rule, Contract says, Playbook: one row per finding in the tool's order, from its ref, cite, topic, status, risk (blank when none), ruleId, vendorWrote and position, values as returned. Then at most three short lines from the result: the number of deviations, the high-risk ones with their passage ids, the number of passes, the total contract value, and the route in order (General Counsel for any deviation, PB-APR-01; Head of Security for data and security terms, PB-APR-02; CFO above $500,000, PB-APR-03). Use read_passage with a passage id (§8.2) to quote the contract when someone asks what it says.
+
+      3. Redlines. When the person writes their own clause for a finding, call set_redline with the matterId, the finding's ref (F1, F2 and so on) and their text exactly as written. Keep their words; never put your own redline back. Report the re-check in one sentence and, if the rule still deviates, ask only for the reason the General Counsel needs (PB-APR-01). Record it with set_reason (matterId, ref, their words).
+
+      4. Send only when the person asks. Call send_for_approval with the matterId; OpenBot shows the person its own Allow once / Deny card first, so do not ask with askApproval as well. If it refuses because a deviation has no reason, name the refs it lists and ask for them. When it succeeds, reply with its message exactly as returned: the approvers in order, and that nothing goes to the vendor until they approve.
+
+      In every tool argument send only matter ids, finding refs, passage ids and the person's own words. Never a rule id ("PB-PAY-01" reads as "pay" to OpenBot's safety floor, which then hands the call to the person instead of running it), never contract or evidence text. If a tool is missing or returns an error, say which and quote its reason, and give no findings.
+    tools:
+      - northstar-legal/list_matters
+      - northstar-legal/get_matter
+      - northstar-legal/read_passage
+      - northstar-legal/propose_plan
+      - northstar-legal/review_contract
+      - northstar-legal/set_redline
+      - northstar-legal/set_reason
+      - northstar-legal/send_for_approval
+      - northstar-legal/get_approval_status
+
+  - slug: redline-check
+    title: Re-check my redline
+    summary: >-
+      Record the person's own clause for one finding, re-check it against the playbook, keep their
+      words, and ask only for the reason the General Counsel needs when it still deviates.
+    instructions: |-
+      The person has written their own clause for one finding. Check it against the playbook without changing it.
+
+      1. Find the finding's ref (F1, F2 and so on). If you have not reviewed this matter in this conversation, call review_contract with the matterId and take the ref of the finding whose passage the person names (for example §8.2). Use read_passage to quote the contract's current words if they ask.
+
+      2. Call set_redline with the matterId, that ref, and the person's text exactly as they wrote it. Never shorten, reword or argue with it, and never put a proposed redline back in its place.
+
+      3. Report the re-check in one sentence from the result: whether the rule still deviates, with its rule and passage ids, like (PB-LIAB-01, §8.2). If it still deviates, ask only for the reason Rachel Adler, General Counsel, needs (PB-APR-01). Do not suggest a different clause unless they ask for one.
+
+      4. When they give the reason, call set_reason with the matterId, the same ref and their words. Confirm it was recorded only if the tool says so. Send for approval only when they ask (send_for_approval; OpenBot asks them first).
+
+      If their clause or reason contains a word OpenBot's safety floor stops on (pay, payment, billing, refund, purchase, checkout, wire, bank transfer, credit card, password, credential, API key, access token, admin role, security settings), do not reword it yourself: tell them OpenBot will hand that call to them instead of running it, and offer a wording without the word for them to accept. Never put a rule id in an argument.
+    tools:
+      - northstar-legal/get_matter
+      - northstar-legal/read_passage
+      - northstar-legal/review_contract
+      - northstar-legal/set_redline
+      - northstar-legal/set_reason
+      - northstar-legal/send_for_approval
+      - northstar-legal/get_approval_status
+
+  # THE LEARNED RULE, AS A SKILL. PB-SEC-01 v1, "Security evidence for data processors", published by
+  # Rachel Adler (General Counsel) on 2026-11-05 after Jordan Blake's send-back matched three in the
+  # imported history (Lumen Ridge, Cobalt Harbor, Fernway). Granted to the Contract Copilot, so the
+  # coworker's page lists it. In production, CopilotKit Intelligence's Automatic Learning proposes a
+  # skill like this from real threads, a person reviews and publishes it in Intelligence, and OpenBot
+  # delivers the published version into every run of the Bots assigned to that Learning container.
+  - slug: security-evidence
+    title: Check security evidence (PB-SEC-01)
+    summary: >-
+      Where a matter stands in its approvals, the vendor's SOC 2 Type II report and pen-test summary
+      checked against PB-SEC-01 v1 (published by Rachel Adler), and the resubmission to the approver
+      who sent it back.
+    instructions: |-
+      PB-SEC-01 v1, Security evidence for data processors, published by Rachel Adler, General Counsel: for any vendor that processes Northstar customer data, request the vendor's SOC 2 Type II report and its latest penetration-test summary before signing.
+
+      1. Where it stands. Call get_approval_status with the matterId (acme-msa for Acme). One line per approver in route order: name, title, status, and date as given. Quote each approver's comment exactly, in quotation marks, with their name. Then what arrived since and when (arrivedSince), and what happens next (next).
+
+      2. Check the evidence. Call check_security_evidence with the matterId. Show it with showTable, columns exactly Check, Result, Rule, Detail: one row per line in the tool's order, Result Pass or Fail from the line's status, Rule and Detail as given. Title "<vendor>: PB-SEC-01 v1 security evidence", caption "Published by <publishedBy>". Then one sentence: it passed, or which lines failed and why. Never decide a line yourself: the dates, the report type and the findings are checked in Northstar Legal's code.
+
+      3. Resubmit only when the person asks, and only if the check passed. Call resubmit_for_approval with the matterId. OpenBot shows the person its own Allow once / Deny card first, so do not ask with askApproval as well; nothing reaches Northstar Legal before their click. When it succeeds, reply with the tool's message exactly as returned and nothing else. If it refuses, quote its error. If they deny the card, say it was not resubmitted.
+
+      Nothing goes to the vendor until every approver on the route has approved; for Acme Cloud that is Rachel Adler, Jordan Blake and Elena Ortiz. In tool arguments send only the matterId, never "PB-SEC-01" or any other rule id, and never evidence text.
+    tools:
+      - northstar-legal/list_matters
+      - northstar-legal/get_matter
+      - northstar-legal/read_passage
+      - northstar-legal/get_approval_status
+      - northstar-legal/check_security_evidence
+      - northstar-legal/resubmit_for_approval
